@@ -1,0 +1,18 @@
+{
+  "name": "codecrafter",
+  "version": "1.0.0",
+  "description": "Full-stack code generation application",
+  "scripts": {
+    "setup": "node setup-env.js",
+    "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install && cd ..",
+    "dev-backend": "cd backend && npm run dev",
+    "dev-frontend": "cd frontend && npm start",
+    "build-frontend": "cd frontend && npm run build",
+    "deploy-backend": "node deploy-backend.js",
+    "test-backend": "curl http://localhost:3001/health",
+    "help": "echo 'Available commands: setup, install-all, dev-backend, dev-frontend, build-frontend, deploy-backend'"
+  },
+  "keywords": ["react", "nodejs", "supabase", "code-generation"],
+  "author": "CodeCrafter Team",
+  "license": "MIT"
+}

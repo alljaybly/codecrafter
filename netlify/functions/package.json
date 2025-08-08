@@ -1,0 +1,8 @@
+{
+  "name": "codecrafter-netlify-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for CodeCrafter",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.26.0"
+  }
+}
