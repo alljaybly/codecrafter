@@ -1,5 +1,12 @@
 const { createClient } = require('@supabase/supabase-js');
 
+// Debug environment variables
+console.log('Environment check:', {
+  hasSupabaseUrl: !!process.env.SUPABASE_URL,
+  hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY,
+  supabaseUrl: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 20) + '...' : 'undefined'
+});
+
 // Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -212,6 +219,22 @@ exports.handler = async (event, context) => {
     };
   }
 
+  // Check environment variables
+  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+    console.error('Missing environment variables:', {
+      hasSupabaseUrl: !!process.env.SUPABASE_URL,
+      hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY
+    });
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: 'Server configuration error',
+        details: 'Missing required environment variables'
+      })
+    };
+  }
+
   try {
     const { idea } = JSON.parse(event.body);
     
@@ -243,7 +266,11 @@ exports.handler = async (event, context) => {
       return {
         statusCode: 500,
         headers,
-        body: JSON.stringify({ error: 'Failed to save to database' })
+        body: JSON.stringify({ 
+          error: 'Failed to save to database',
+          details: error.message,
+          code: error.code
+        })
       };
     }
 

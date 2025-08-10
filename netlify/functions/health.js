@@ -21,7 +21,12 @@ exports.handler = async (event, context) => {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       service: 'CodeCrafter API',
-      version: '1.0.0'
+      version: '1.0.0',
+      environment: {
+        hasSupabaseUrl: !!process.env.SUPABASE_URL,
+        hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY,
+        nodeVersion: process.version
+      }
     })
   };
 };
