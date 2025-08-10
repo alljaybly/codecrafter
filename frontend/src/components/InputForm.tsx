@@ -74,7 +74,11 @@ const InputForm: React.FC = () => {
       // Convert blob to base64 for AWS Transcribe
       const arrayBuffer = await audioBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
-      const base64Audio = btoa(String.fromCharCode.apply(null, Array.from(uint8Array)));
+      let binaryString = '';
+      for (let i = 0; i < uint8Array.length; i++) {
+        binaryString += String.fromCharCode(uint8Array[i]);
+      }
+      const base64Audio = btoa(binaryString);
       
       const response = await axios.post(`${API_BASE_URL}/transcribe`, {
         audio: base64Audio
