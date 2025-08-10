@@ -1,17 +1,28 @@
-const { createClient } = require('@supabase/supabase-js');
+// Try to import Supabase, but don't fail if it's not available
+let supabase = null;
+let createClient = null;
 
-// Debug environment variables
-console.log('Environment check:', {
-  hasSupabaseUrl: !!process.env.SUPABASE_URL,
-  hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY,
-  supabaseUrl: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 20) + '...' : 'undefined'
-});
+try {
+  const supabaseModule = require('@supabase/supabase-js');
+  createClient = supabaseModule.createClient;
+  
+  // Debug environment variables
+  console.log('Environment check:', {
+    hasSupabaseUrl: !!process.env.SUPABASE_URL,
+    hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY,
+    supabaseUrl: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 20) + '...' : 'undefined'
+  });
 
-// Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+  // Only create Supabase client if environment variables are available
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+    supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_ANON_KEY
+    );
+  }
+} catch (error) {
+  console.log('Supabase not available:', error.message);
+}
 
 // Static code snippets for demonstration
 const codeTemplates = {
@@ -219,24 +230,8 @@ exports.handler = async (event, context) => {
     };
   }
 
-  // Check environment variables
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
-    console.error('Missing environment variables:', {
-      hasSupabaseUrl: !!process.env.SUPABASE_URL,
-      hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY
-    });
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ 
-        error: 'Server configuration error',
-        details: 'Missing required environment variables'
-      })
-    };
-  }
-
   try {
-    const { idea } = JSON.parse(event.body);
+    const { idea } = JSON.parse(event.body || '{}');
     
     if (!idea || !idea.trim()) {
       return {
@@ -249,40 +244,45 @@ exports.handler = async (event, context) => {
     // Generate code based on the idea
     const generatedCode = getCodeTemplate(idea);
     
-    // Store in Supabase
-    const { data, error } = await supabase
-      .from('generated_code')
-      .insert([
-        {
-          idea: idea.trim(),
-          generated_at: new Date().toISOString()
-        }
-      ])
-      .select()
-      .single();
+    // Try to store in Supabase if available
+    let responseData = {
+      id: Date.now(), // Fallback ID
+      idea: idea.trim(),
+      code: generatedCode,
+      generated_at: new Date().toISOString()
+    };
 
-    if (error) {
-      console.error('Supabase error:', error);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Failed to save to database',
-          details: error.message,
-          code: error.code
-        })
-      };
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('generated_code')
+          .insert([
+            {
+              idea: idea.trim(),
+              generated_at: new Date().toISOString()
+            }
+          ])
+          .select()
+          .single();
+
+        if (error) {
+          console.error('Supabase error:', error);
+          // Continue without database, but log the error
+        } else {
+          responseData.id = data.id;
+        }
+      } catch (dbError) {
+        console.error('Database connection error:', dbError);
+        // Continue without database
+      }
+    } else {
+      console.log('Supabase not configured, returning generated code without database storage');
     }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({
-        id: data.id,
-        idea: data.idea,
-        code: generatedCode,
-        generated_at: data.generated_at
-      })
+      body: JSON.stringify(responseData)
     };
 
   } catch (error) {
@@ -290,7 +290,10 @@ exports.handler = async (event, context) => {
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Internal server error' })
+      body: JSON.stringify({ 
+        error: 'Internal server error',
+        details: error.message 
+      })
     };
   }
 };

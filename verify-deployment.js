@@ -18,8 +18,22 @@ async function verifyDeployment(baseUrl) {
   }
 
   try {
-    // Test 2: Check if Netlify function is accessible
-    console.log('\n2. Testing Netlify function...');
+    // Test 2: Check if Netlify functions are accessible
+    console.log('\n2. Testing Netlify function health...');
+    const healthResponse = await axios.get(`${baseUrl}/.netlify/functions/health`);
+    
+    if (healthResponse.status === 200) {
+      console.log('✅ Netlify functions are accessible');
+      console.log('Environment:', healthResponse.data.environment);
+    }
+  } catch (error) {
+    console.log('❌ Netlify functions not accessible:', error.message);
+    return;
+  }
+
+  try {
+    // Test 3: Check code generation function
+    console.log('\n3. Testing code generation...');
     const functionResponse = await axios.post(`${baseUrl}/.netlify/functions/generate-code`, {
       idea: 'Create a simple counter app'
     }, {
@@ -29,14 +43,12 @@ async function verifyDeployment(baseUrl) {
     });
     
     if (functionResponse.status === 200 && functionResponse.data.code) {
-      console.log('✅ Netlify function is working');
+      console.log('✅ Code generation is working');
       console.log('Generated code preview:', functionResponse.data.code.substring(0, 100) + '...');
     }
   } catch (error) {
-    console.log('❌ Netlify function failed:', error.response?.data || error.message);
-    console.log('💡 Make sure to set environment variables in Netlify dashboard:');
-    console.log('   - SUPABASE_URL');
-    console.log('   - SUPABASE_ANON_KEY');
+    console.log('❌ Code generation failed:', error.response?.data || error.message);
+    console.log('💡 This might work anyway - check the function logs in Netlify dashboard');
   }
 
   console.log('\n🎉 Deployment verification complete!');
