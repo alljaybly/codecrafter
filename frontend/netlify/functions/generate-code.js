@@ -231,7 +231,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { idea } = JSON.parse(event.body || '{}');
+    const { idea, usedVoiceInput } = JSON.parse(event.body || '{}');
     
     if (!idea || !idea.trim()) {
       return {
@@ -299,6 +299,33 @@ exports.handler = async (event, context) => {
                   }
                 ]);
               console.log('Awarded "First Idea" badge to user');
+            }
+
+            // Award "Voice Input Used" badge if voice was used
+            if (usedVoiceInput) {
+              const { data: existingVoiceBadge, error: voiceBadgeError } = await supabase
+                .from('badges')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('badge_name', 'Voice Input Used')
+                .maybeSingle();
+
+              if (voiceBadgeError && voiceBadgeError.code !== 'PGRST116') {
+                console.error('Error checking voice badge:', voiceBadgeError);
+              }
+
+              if (!existingVoiceBadge) {
+                await supabase
+                  .from('badges')
+                  .insert([
+                    {
+                      user_id: userId,
+                      badge_name: 'Voice Input Used',
+                      awarded_at: new Date().toISOString()
+                    }
+                  ]);
+                console.log('Awarded "Voice Input Used" badge to user');
+              }
             }
 
             // Award specific badges based on idea content
