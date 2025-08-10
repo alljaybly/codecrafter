@@ -1,244 +1,195 @@
-# CodeCrafter
+# 🚀 CodeCrafter
 
-A full-stack web application that generates code snippets from user ideas using text input or voice commands.
+A full-stack web application for generating code from natural language descriptions, built for the Code with Kiro Hackathon.
 
-## Features
+## ✨ Features
 
-- **Text Input**: Enter your app idea in a textarea
-- **Voice Input**: Use AWS Transcribe to convert speech to text
-- **Code Generation**: Generate React components based on your ideas
-- **Database Storage**: Store all generated ideas in Supabase
-- **Modern UI**: Built with React, TypeScript, and Tailwind CSS
+- **React Frontend**: Modern React with TypeScript and Tailwind CSS
+- **Voice Input**: AWS Transcribe integration for voice-to-text
+- **Code Generation**: AI-powered code generation from descriptions
+- **Supabase Backend**: Real-time database for storing generated code
+- **Netlify Deployment**: Serverless functions for production deployment
 
-## Tech Stack
+## 🛠 Tech Stack
 
-### Frontend
-- React 18 with TypeScript
-- Tailwind CSS for styling
-- Axios for API calls
-- AWS SDK for voice transcription
-- Hosted on Netlify
+- **Frontend**: React 18, TypeScript, Tailwind CSS
+- **Backend**: Node.js, Express, Supabase
+- **Cloud Services**: AWS Transcribe, Netlify Functions
+- **Database**: Supabase (PostgreSQL)
 
-### Backend
-- Node.js with Express
-- Supabase for database
-- AWS Transcribe for voice processing
-- CORS enabled for cross-origin requests
-
-### Database
-- Supabase PostgreSQL
-- Table: `generated_code` with columns:
-  - `id` (bigint, primary key)
-  - `idea` (text)
-  - `generated_at` (timestamp)
-
-## Project Structure
-
-\`\`\`
-codecrafter/
-├── frontend/              # React TypeScript application
-│   ├── src/
-│   │   ├── components/
-│   │   │   └── InputForm.tsx
-│   │   ├── App.tsx
-│   │   ├── App.css
-│   │   ├── index.tsx
-│   │   └── index.css
-│   ├── public/
-│   │   └── index.html
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── tailwind.config.js
-│   ├── postcss.config.js
-│   └── netlify.toml
-├── backend/               # Express.js API server
-│   ├── server.js
-│   ├── package.json
-│   └── .env.example
-├── database/              # Supabase setup
-│   └── setup.sql
-└── docs/                  # Documentation
-    └── README.md
-\`\`\`
-
-## Setup Instructions
+## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v16 or higher)
+
+- Node.js 18+
 - npm or yarn
 - Supabase account
-- AWS account (for Transcribe service)
+- AWS account (for Transcribe)
 
-### Backend Setup
+### Installation
 
-1. Navigate to the backend directory:
-   \`\`\`bash
-   cd backend
-   \`\`\`
+1. **Clone the repository:**
+```bash
+git clone https://github.com/alljaybly/codecrafter.git
+cd codecrafter
+```
 
-2. Install dependencies:
-   \`\`\`bash
-   npm install
-   \`\`\`
+2. **Install dependencies:**
+```bash
+# Frontend dependencies
+cd frontend && npm install
 
-3. Create environment file:
-   \`\`\`bash
-   cp .env.example .env
-   \`\`\`
+# Backend dependencies
+cd ../backend && npm install
+```
 
-4. Configure your environment variables in \`.env\`:
-   \`\`\`
+3. **Set up environment variables:**
+```bash
+# Copy environment templates
+cp .env.example .env
+cp frontend/.env.example frontend/.env
+cp backend/.env.example backend/.env
+```
+
+4. **Configure your credentials** in the `.env` files with your Supabase and AWS details.
+
+5. **Set up the database:**
+   - Go to your Supabase project SQL editor
+   - Run the script from `database/setup.sql`
+
+### 🏃‍♂️ Development
+
+1. **Start the backend:**
+```bash
+cd backend && node server.js
+```
+
+2. **Start the frontend:**
+```bash
+cd frontend && npm start
+```
+
+3. **Test the setup:**
+```bash
+node test-local.js
+```
+
+4. Visit `http://localhost:3000` to use the application.
+
+## 🌐 Deployment
+
+### Netlify Deployment
+
+1. **Connect to Netlify:**
+   - Link your GitHub repository to Netlify
+   - Set base directory: `frontend`
+   - Build command: `npm ci && npm run build`
+   - Publish directory: `build`
+   - Functions directory: `netlify/functions`
+
+2. **Environment Variables:**
+   Add these in your Netlify dashboard:
+   ```
    SUPABASE_URL=your_supabase_project_url
    SUPABASE_ANON_KEY=your_supabase_anon_key
    AWS_ACCESS_KEY_ID=your_aws_access_key_id
    AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
    AWS_REGION=us-east-1
-   PORT=3001
-   \`\`\`
+   ```
 
-5. Start the development server:
-   \`\`\`bash
-   npm run dev
-   \`\`\`
+## 📁 Project Structure
 
-### Frontend Setup
+```
+codecrafter/
+├── frontend/                    # React TypeScript frontend
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── InputForm.tsx   # Main form with voice input
+│   │   ├── App.tsx
+│   │   └── index.tsx
+│   ├── netlify/
+│   │   └── functions/          # Serverless functions
+│   │       └── generate-code.js
+│   ├── package.json
+│   └── tailwind.config.js
+├── backend/                     # Node.js Express backend
+│   ├── server.js               # Main server with API endpoints
+│   └── package.json
+├── database/
+│   └── setup.sql              # Supabase database schema
+├── netlify.toml               # Netlify configuration
+├── test-local.js              # Local testing script
+└── .env.example               # Environment template
+```
 
-1. Navigate to the frontend directory:
-   \`\`\`bash
-   cd frontend
-   \`\`\`
+## 🔌 API Endpoints
 
-2. Install dependencies:
-   \`\`\`bash
-   npm install
-   \`\`\`
+### POST `/generate-code`
+Generate code from a natural language description.
 
-3. Create environment file:
-   \`\`\`bash
-   cp .env.example .env
-   \`\`\`
-
-4. Configure your API URL in \`.env\`:
-   \`\`\`
-   REACT_APP_API_URL=http://localhost:3001
-   \`\`\`
-
-5. Start the development server:
-   \`\`\`bash
-   npm start
-   \`\`\`
-
-### Database Setup
-
-1. Create a new Supabase project at [supabase.com](https://supabase.com)
-
-2. In your Supabase dashboard, go to the SQL editor
-
-3. Run the setup script from \`database/setup.sql\`:
-   \`\`\`sql
-   -- Create the generated_code table
-   CREATE TABLE IF NOT EXISTS generated_code (
-       id BIGSERIAL PRIMARY KEY,
-       idea TEXT NOT NULL,
-       generated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-   );
-   \`\`\`
-
-4. Get your project URL and anon key from Settings > API
-
-## API Endpoints
-
-### POST /generate-code
-Generates code based on user idea and stores it in the database.
-
-**Request Body:**
-\`\`\`json
+**Request:**
+```json
 {
   "idea": "Create a todo app with user authentication"
 }
-\`\`\`
+```
 
 **Response:**
-\`\`\`json
+```json
 {
   "id": 1,
   "idea": "Create a todo app with user authentication",
   "code": "// Generated React component code...",
-  "generated_at": "2024-01-01T12:00:00Z"
+  "generated_at": "2024-01-01T00:00:00Z"
 }
-\`\`\`
+```
 
-### POST /transcribe
-Transcribes audio to text using AWS Transcribe.
+### POST `/transcribe`
+Transcribe audio to text using AWS Transcribe.
 
-**Request Body:**
-\`\`\`json
+**Request:**
+```json
 {
   "audio": "base64_encoded_audio_data"
 }
-\`\`\`
+```
 
 **Response:**
-\`\`\`json
+```json
 {
-  "transcription": "Create a todo application with user authentication"
+  "transcription": "Create a todo app with user authentication"
 }
-\`\`\`
+```
 
-## Deployment
+## 🧪 Testing
 
-### Frontend (Netlify)
+Run the local test suite:
+```bash
+node test-local.js
+```
 
-1. Build the project:
-   \`\`\`bash
-   cd frontend
-   npm run build
-   \`\`\`
+This will verify:
+- Backend server health
+- Code generation endpoint
+- Audio transcription endpoint
 
-2. Deploy to Netlify:
-   - Connect your GitHub repository to Netlify
-   - Set build command: \`npm run build\`
-   - Set publish directory: \`build\`
-   - Add environment variable: \`REACT_APP_API_URL\`
-
-### Backend (Heroku/Railway/Render)
-
-1. Create a new app on your preferred platform
-
-2. Set environment variables:
-   - \`SUPABASE_URL\`
-   - \`SUPABASE_ANON_KEY\`
-   - \`AWS_ACCESS_KEY_ID\`
-   - \`AWS_SECRET_ACCESS_KEY\`
-   - \`AWS_REGION\`
-
-3. Deploy the backend directory
-
-## Usage
-
-1. Open the application in your browser
-2. Enter your app idea in the textarea or use voice input
-3. Click "Generate Code" to create a React component
-4. View the generated code in the output section
-5. All ideas are automatically saved to the database
-
-## Code Templates
-
-The application includes several pre-built templates:
-
-- **Todo App**: Task management with add/toggle functionality
-- **Weather App**: Weather display with city search
-- **Counter App**: Simple increment/decrement counter
-- **Default**: Basic React component template
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
-## License
+## 📄 License
 
-MIT License - see LICENSE file for details
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## 🎯 Built for Code with Kiro Hackathon
+
+This project demonstrates a complete full-stack application with:
+- Modern React frontend with TypeScript
+- Voice input capabilities
+- Serverless backend functions
+- Database integration
+- Production-ready deployment configuration
