@@ -1,8 +1,11 @@
 [build]
   base = "frontend"
-  publish = "frontend/build"
+  publish = "build"
   command = "npm run build"
-  functions = "netlify/functions"
+  functions = "../netlify/functions"
+
+[build.environment]
+  REACT_APP_API_URL = "/.netlify/functions"
 
 [[redirects]]
   from = "/api/*"
@@ -14,10 +17,6 @@
   to = "/index.html"
   status = 200
 
-[build.environment]
-  REACT_APP_API_URL = "/.netlify/functions"
-
-# Headers for security
 [[headers]]
   for = "/*"
   [headers.values]
