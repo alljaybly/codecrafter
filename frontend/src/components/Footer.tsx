@@ -73,7 +73,7 @@ const Footer: React.FC = () => {
         {/* Copyright */}
         <div className="border-t border-gray-800 mt-8 pt-8 text-center">
           <p className="text-gray-400">
-            © 2025 CodeCrafter. Built with ❤️ for the Code with Kiro Hackathon.
+            © 2025 CodeCrafter. Built with ❤️ Allen J Blythe(NXlevel)❤ for the Code with Kiro Hackathon.
           </p>
         </div>
       </div>
