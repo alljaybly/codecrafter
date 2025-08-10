@@ -2,6 +2,7 @@ import React from 'react';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navigation from './components/Navigation';
 import InputForm from './components/InputForm';
+import SavedIdeas from './components/SavedIdeas';
 import HowItWorks from './components/HowItWorks';
 import Badges from './components/Badges';
 import Footer from './components/Footer';
@@ -35,6 +36,7 @@ function App() {
           <InputForm />
         </main>
 
+        <SavedIdeas />
         <HowItWorks />
         <Badges />
         <Footer />

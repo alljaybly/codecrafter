@@ -85,15 +85,19 @@ const Badges: React.FC = () => {
 
     return (
       <div
-        key={badgeName}
-        className={`relative p-6 rounded-xl border-2 transition-all duration-300 ${
+        className={`relative p-6 rounded-xl border-2 transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-opacity-50 ${
           isEarned
-            ? `${badge.color} text-white shadow-lg transform hover:scale-105`
-            : 'bg-gray-100 border-gray-300 text-gray-400'
+            ? `${badge.color} text-white shadow-lg transform hover:scale-105 animate-bounce-in`
+            : 'bg-gray-100 border-gray-300 text-gray-400 hover:bg-gray-200'
         }`}
+        role="article"
+        aria-label={`${badgeName} badge ${isEarned ? 'earned' : 'not earned'}`}
+        tabIndex={0}
       >
         <div className="text-center">
-          <div className="text-4xl mb-3">{badge.icon}</div>
+          <div className="text-4xl mb-3" role="img" aria-label={`${badgeName} icon`}>
+            {badge.icon}
+          </div>
           <h3 className="text-lg font-semibold mb-2">{badgeName}</h3>
           <p className={`text-sm ${isEarned ? 'text-white/90' : 'text-gray-500'}`}>
             {badge.description}
@@ -105,7 +109,11 @@ const Badges: React.FC = () => {
           )}
         </div>
         {isEarned && (
-          <div className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+          <div 
+            className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold animate-bounce-in"
+            aria-label="Badge earned"
+            role="img"
+          >
             ✓
           </div>
         )}
@@ -115,11 +123,29 @@ const Badges: React.FC = () => {
 
   if (loading) {
     return (
-      <section id="badges" className="py-16 bg-white">
+      <section id="badges" className="py-16 bg-white" aria-label="Achievement badges section">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading badges...</p>
+          <div className="text-center mb-12 animate-fade-in">
+            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+              Achievement Badges
+            </h2>
+          </div>
+          
+          {/* Loading skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="status" aria-label="Loading badges">
+            {[...Array(6)].map((_, index) => (
+              <div key={index} className="bg-gray-100 rounded-xl p-6 shadow-sm animate-pulse">
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-gray-200 rounded-full mx-auto mb-4"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-3"></div>
+                  <div className="h-3 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="text-center mt-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600" aria-live="polite">Loading badges...</p>
           </div>
         </div>
       </section>
@@ -130,10 +156,10 @@ const Badges: React.FC = () => {
   const allBadgeNames = Object.keys(badgeDefinitions);
 
   return (
-    <section id="badges" className="py-16 bg-white">
+    <section id="badges" className="py-16 bg-white" aria-label="Achievement badges section">
       <div className="max-w-6xl mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 animate-fade-in">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
             Achievement Badges
           </h2>
@@ -144,22 +170,22 @@ const Badges: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 mb-12">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 mb-12 animate-slide-up">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
-              <div className="text-3xl font-bold text-blue-600 mb-2">
+              <div className="text-3xl font-bold text-blue-600 mb-2" aria-label={`${earnedBadges.length} badges earned`}>
                 {earnedBadges.length}
               </div>
               <div className="text-gray-600">Badges Earned</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-purple-600 mb-2">
+              <div className="text-3xl font-bold text-purple-600 mb-2" aria-label={`${allBadgeNames.length} total badges available`}>
                 {allBadgeNames.length}
               </div>
               <div className="text-gray-600">Total Available</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-green-600 mb-2">
+              <div className="text-3xl font-bold text-green-600 mb-2" aria-label={`${Math.round((earnedBadges.length / allBadgeNames.length) * 100)}% completion rate`}>
                 {Math.round((earnedBadges.length / allBadgeNames.length) * 100)}%
               </div>
               <div className="text-gray-600">Completion</div>
@@ -169,19 +195,40 @@ const Badges: React.FC = () => {
 
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
-            <p className="text-red-600">{error}</p>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8 animate-fade-in" role="alert">
+            <div className="flex items-center">
+              <svg className="w-5 h-5 text-red-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p className="text-red-600">{error}</p>
+            </div>
+            <button
+              onClick={fetchBadges}
+              className="mt-2 text-red-600 hover:text-red-800 underline text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded"
+              aria-label="Retry loading badges"
+            >
+              Try again
+            </button>
           </div>
         )}
 
         {/* Badges Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {allBadgeNames.map(badgeName => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="Achievement badges">
+          {allBadgeNames.map((badgeName, index) => {
             const earnedBadge = badges.find(b => b.badge_name === badgeName);
-            return renderBadge(
-              badgeName,
-              !!earnedBadge,
-              earnedBadge?.awarded_at
+            return (
+              <div
+                key={badgeName}
+                className="animate-fade-in-up"
+                style={{ animationDelay: `${index * 100}ms` }}
+                role="listitem"
+              >
+                {renderBadge(
+                  badgeName,
+                  !!earnedBadge,
+                  earnedBadge?.awarded_at
+                )}
+              </div>
             );
           })}
         </div>
@@ -202,7 +249,8 @@ const Badges: React.FC = () => {
                   element.scrollIntoView({ behavior: 'smooth' });
                 }
               }}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              aria-label="Go to code generator to start earning badges"
             >
               Get Started
             </button>

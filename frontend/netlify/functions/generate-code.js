@@ -276,12 +276,16 @@ exports.handler = async (event, context) => {
             const userId = 'demo-user'; // In a real app, this would come from authentication
             
             // Check if user already has the "First Idea" badge
-            const { data: existingBadge } = await supabase
+            const { data: existingBadge, error: badgeCheckError } = await supabase
               .from('badges')
               .select('id')
               .eq('user_id', userId)
               .eq('badge_name', 'First Idea')
-              .single();
+              .maybeSingle();
+
+            if (badgeCheckError && badgeCheckError.code !== 'PGRST116') {
+              console.error('Error checking existing badge:', badgeCheckError);
+            }
 
             if (!existingBadge) {
               // Award the badge
@@ -308,12 +312,16 @@ exports.handler = async (event, context) => {
             }
 
             if (badgeToAward) {
-              const { data: existingSpecificBadge } = await supabase
+              const { data: existingSpecificBadge, error: specificBadgeError } = await supabase
                 .from('badges')
                 .select('id')
                 .eq('user_id', userId)
                 .eq('badge_name', badgeToAward)
-                .single();
+                .maybeSingle();
+
+              if (specificBadgeError && specificBadgeError.code !== 'PGRST116') {
+                console.error('Error checking specific badge:', specificBadgeError);
+              }
 
               if (!existingSpecificBadge) {
                 await supabase

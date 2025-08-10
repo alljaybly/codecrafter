@@ -253,6 +253,28 @@ app.post('/generate-code', async (req, res) => {
   }
 });
 
+app.get('/ideas', async (req, res) => {
+  try {
+    // Fetch ideas from Supabase
+    const { data, error } = await supabase
+      .from('generated_code')
+      .select('id, idea, generated_at')
+      .order('generated_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('Supabase error:', error);
+      return res.status(500).json({ error: 'Failed to fetch ideas from database' });
+    }
+
+    res.json(data || []);
+
+  } catch (error) {
+    console.error('Error fetching ideas:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 app.post('/transcribe', async (req, res) => {
   try {
     const { audio } = req.body;
