@@ -16,11 +16,61 @@ const InputForm: React.FC = () => {
   const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [microphonePermission, setMicrophonePermission] = useState<'unknown' | 'granted' | 'denied' | 'prompt'>('unknown');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || '/.netlify/functions';
+
+  // Check microphone permissions on component mount
+  React.useEffect(() => {
+    checkMicrophonePermission();
+  }, []);
+
+  const checkMicrophonePermission = async () => {
+    try {
+      if (navigator.permissions && navigator.permissions.query) {
+        const permission = await navigator.permissions.query({ name: 'microphone' as PermissionName });
+        setMicrophonePermission(permission.state);
+        
+        // Listen for permission changes
+        permission.onchange = () => {
+          setMicrophonePermission(permission.state);
+        };
+      }
+    } catch (error) {
+      console.log('Permission API not supported');
+      setMicrophonePermission('unknown');
+    }
+  };
+
+  const requestMicrophonePermission = async () => {
+    try {
+      setError(null);
+      setSuccess('Requesting microphone permission...');
+      
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop()); // Stop immediately, we just wanted permission
+      
+      setMicrophonePermission('granted');
+      setSuccess('Microphone permission granted! You can now use voice input.');
+      
+      // Auto-start recording after permission is granted
+      setTimeout(() => {
+        startRecording();
+      }, 1000);
+      
+    } catch (error) {
+      console.error('Permission request failed:', error);
+      setMicrophonePermission('denied');
+      if (error instanceof Error && error.name === 'NotAllowedError') {
+        setError('Microphone permission denied. Please click the microphone icon in your browser\'s address bar and allow access, then try again.');
+      } else {
+        setError('Unable to access microphone. Please check your browser settings and try again.');
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +111,17 @@ const InputForm: React.FC = () => {
   const startRecording = async () => {
     try {
       setError(null);
+      
+      // Check if we need to request permission first
+      if (microphonePermission === 'denied') {
+        setError('Microphone access is blocked. Please click the microphone icon in your browser\'s address bar, select "Allow", and refresh the page.');
+        return;
+      }
+      
+      if (microphonePermission === 'prompt' || microphonePermission === 'unknown') {
+        await requestMicrophonePermission();
+        return;
+      }
       
       // Check for microphone permissions
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -104,13 +165,63 @@ const InputForm: React.FC = () => {
       console.error('Error starting recording:', error);
       if (error instanceof Error) {
         if (error.name === 'NotAllowedError') {
-          setError('Microphone access denied. Please allow microphone permissions and try again.');
+          setMicrophonePermission('denied');
+          setError('Microphone access denied. Please click the microphone icon in your browser\'s address bar, select "Allow", and try again.');
         } else if (error.name === 'NotFoundError') {
           setError('No microphone found. Please connect a microphone and try again.');
+        } else if (error.name === 'NotReadableError') {
+          setError('Microphone is being used by another application. Please close other apps using your microphone and try again.');
+        } else if (error.name === 'OverconstrainedError') {
+          setError('Microphone doesn\'t support the required audio settings. Trying with basic settings...');
+          // Retry with basic settings
+          setTimeout(() => {
+            startRecordingBasic();
+          }, 2000);
         } else {
-          setError('Failed to start recording. Please check your microphone and try again.');
+          setError('Failed to start recording. Please check your microphone and browser settings.');
         }
       }
+    }
+  };
+
+  const startRecordingBasic = async () => {
+    try {
+      setError(null);
+      
+      // Try with basic audio settings
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: true // Use default settings
+      });
+      
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        await transcribeAudio(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.onerror = (event) => {
+        console.error('MediaRecorder error:', event);
+        setError('Recording error occurred. Please try again.');
+        setIsRecording(false);
+      };
+
+      mediaRecorder.start(1000);
+      setIsRecording(true);
+      setSuccess('Recording started with basic settings. Speak clearly into your microphone.');
+      
+    } catch (error) {
+      console.error('Error with basic recording:', error);
+      setError('Unable to access microphone. Please check your browser settings and ensure no other applications are using your microphone.');
     }
   };
 
@@ -309,6 +420,28 @@ const InputForm: React.FC = () => {
           </p>
         </div>
 
+        {/* Microphone Permission Guide */}
+        {microphonePermission === 'denied' && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg animate-fade-in">
+            <div className="flex items-start">
+              <svg className="w-5 h-5 text-yellow-500 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+              <div>
+                <h4 className="text-sm font-medium text-yellow-800 mb-1">Microphone Access Needed</h4>
+                <p className="text-sm text-yellow-700 mb-2">
+                  To use voice input, please allow microphone access:
+                </p>
+                <ol className="text-sm text-yellow-700 list-decimal list-inside space-y-1">
+                  <li>Click the microphone icon in your browser's address bar</li>
+                  <li>Select "Allow" for microphone access</li>
+                  <li>Refresh the page and try voice input again</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row gap-4">
           <button
             type="button"
@@ -319,10 +452,18 @@ const InputForm: React.FC = () => {
                 ? 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 animate-pulse'
                 : isTranscribing
                 ? 'bg-yellow-600 text-white cursor-not-allowed'
+                : microphonePermission === 'denied'
+                ? 'bg-gray-400 text-white cursor-not-allowed'
                 : 'bg-purple-600 hover:bg-purple-700 text-white focus:ring-purple-500 hover:shadow-lg'
             }`}
             aria-label={isRecording ? 'Stop voice recording' : 'Start voice recording'}
-            title={isRecording ? 'Click to stop recording' : 'Click to start voice input'}
+            title={
+              microphonePermission === 'denied' 
+                ? 'Microphone access denied. Please allow microphone permissions in your browser.'
+                : isRecording 
+                ? 'Click to stop recording' 
+                : 'Click to start voice input'
+            }
           >
             {isTranscribing ? (
               <>
@@ -334,19 +475,30 @@ const InputForm: React.FC = () => {
               </>
             ) : (
               <>
-                <svg
-                  className="w-5 h-5 mr-2"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                  aria-hidden="true"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                {isRecording ? 'Stop Recording' : 'Voice Input'}
+                {microphonePermission === 'denied' ? (
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18 21l-4.95-4.95m0 0L5.636 5.636M13.05 16.05L5.636 5.636" />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-5 h-5 mr-2"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                    aria-hidden="true"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                )}
+                {microphonePermission === 'denied' 
+                  ? 'Microphone Blocked' 
+                  : isRecording 
+                  ? 'Stop Recording' 
+                  : 'Voice Input'
+                }
               </>
             )}
           </button>
