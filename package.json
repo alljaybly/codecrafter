@@ -12,6 +12,9 @@
     "test-backend": "curl http://localhost:3001/health",
     "help": "echo 'Available commands: setup, install-all, dev-backend, dev-frontend, build-frontend, deploy-backend'"
   },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.26.0"
+  },
   "keywords": ["react", "nodejs", "supabase", "code-generation"],
   "author": "CodeCrafter Team",
   "license": "MIT"
