@@ -270,6 +270,69 @@ exports.handler = async (event, context) => {
           // Continue without database, but log the error
         } else {
           responseData.id = data.id;
+          
+          // Award "First Idea" badge for new users
+          try {
+            const userId = 'demo-user'; // In a real app, this would come from authentication
+            
+            // Check if user already has the "First Idea" badge
+            const { data: existingBadge } = await supabase
+              .from('badges')
+              .select('id')
+              .eq('user_id', userId)
+              .eq('badge_name', 'First Idea')
+              .single();
+
+            if (!existingBadge) {
+              // Award the badge
+              await supabase
+                .from('badges')
+                .insert([
+                  {
+                    user_id: userId,
+                    badge_name: 'First Idea',
+                    awarded_at: new Date().toISOString()
+                  }
+                ]);
+              console.log('Awarded "First Idea" badge to user');
+            }
+
+            // Award specific badges based on idea content
+            const lowerIdea = idea.toLowerCase();
+            let badgeToAward = null;
+            
+            if (lowerIdea.includes('todo') || lowerIdea.includes('task')) {
+              badgeToAward = 'Todo Master';
+            } else if (lowerIdea.includes('weather')) {
+              badgeToAward = 'Weather Wizard';
+            }
+
+            if (badgeToAward) {
+              const { data: existingSpecificBadge } = await supabase
+                .from('badges')
+                .select('id')
+                .eq('user_id', userId)
+                .eq('badge_name', badgeToAward)
+                .single();
+
+              if (!existingSpecificBadge) {
+                await supabase
+                  .from('badges')
+                  .insert([
+                    {
+                      user_id: userId,
+                      badge_name: badgeToAward,
+                      awarded_at: new Date().toISOString()
+                    }
+                  ]);
+                console.log(`Awarded "${badgeToAward}" badge to user`);
+              }
+            }
+
+          } catch (badgeError) {
+            console.error('Error awarding badges:', badgeError);
+            // Don't fail the main request if badge awarding fails
+          }
         }
       } catch (dbError) {
         console.error('Database connection error:', dbError);
