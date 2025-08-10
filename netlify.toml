@@ -1,13 +1,15 @@
 [build]
   base = "frontend"
   publish = "build"
-  command = "npm ci && npm run build"
+  command = "npm ci --legacy-peer-deps && npm run build"
   functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "18"
   REACT_APP_API_URL = "/.netlify/functions"
   CI = "false"
+  GENERATE_SOURCEMAP = "false"
+  DISABLE_ESLINT_PLUGIN = "true"
 
 [[plugins]]
   package = "@netlify/plugin-functions-install-core"
