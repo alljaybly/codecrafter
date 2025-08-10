@@ -152,7 +152,7 @@ const Badges: React.FC = () => {
     );
   }
 
-  const earnedBadges = badges.map(b => b.badge_name);
+  const earnedBadges = Array.isArray(badges) ? badges.map(b => b.badge_name) : [];
   const allBadgeNames = Object.keys(badgeDefinitions);
 
   return (
@@ -215,7 +215,7 @@ const Badges: React.FC = () => {
         {/* Badges Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="Achievement badges">
           {allBadgeNames.map((badgeName, index) => {
-            const earnedBadge = badges.find(b => b.badge_name === badgeName);
+            const earnedBadge = Array.isArray(badges) ? badges.find(b => b.badge_name === badgeName) : undefined;
             return (
               <div
                 key={badgeName}

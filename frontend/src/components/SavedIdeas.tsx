@@ -27,7 +27,9 @@ const SavedIdeas: React.FC = () => {
       // Try to fetch from backend first, then fallback to mock data
       try {
         const response = await axios.get(`${API_BASE_URL}/ideas`);
-        setIdeas(response.data);
+        // Ensure response.data is an array
+        const responseData = Array.isArray(response.data) ? response.data : [];
+        setIdeas(responseData);
       } catch (apiError) {
         console.log('API not available, using mock data');
         // Mock data for demonstration
@@ -126,27 +128,27 @@ const SavedIdeas: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
               <div className="text-3xl font-bold text-blue-600 mb-2">
-                {ideas.length}
+                {Array.isArray(ideas) ? ideas.length : 0}
               </div>
               <div className="text-gray-600">Total Ideas</div>
             </div>
             <div>
               <div className="text-3xl font-bold text-green-600 mb-2">
-                {ideas.filter(idea => {
+                {Array.isArray(ideas) ? ideas.filter(idea => {
                   const date = new Date(idea.generated_at);
                   const today = new Date();
                   return date.toDateString() === today.toDateString();
-                }).length}
+                }).length : 0}
               </div>
               <div className="text-gray-600">Today</div>
             </div>
             <div>
               <div className="text-3xl font-bold text-purple-600 mb-2">
-                {ideas.filter(idea => {
+                {Array.isArray(ideas) ? ideas.filter(idea => {
                   const date = new Date(idea.generated_at);
                   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
                   return date >= weekAgo;
-                }).length}
+                }).length : 0}
               </div>
               <div className="text-gray-600">This Week</div>
             </div>
@@ -173,7 +175,7 @@ const SavedIdeas: React.FC = () => {
         )}
 
         {/* Ideas Grid */}
-        {ideas.length === 0 ? (
+        {!Array.isArray(ideas) || ideas.length === 0 ? (
           <div className="text-center py-12 animate-fade-in">
             <div className="text-gray-400 mb-4">
               <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -197,7 +199,7 @@ const SavedIdeas: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {ideas.map((idea, index) => (
+            {Array.isArray(ideas) && ideas.map((idea, index) => (
               <div
                 key={idea.id}
                 className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 animate-fade-in-up border border-gray-100"
