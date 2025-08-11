@@ -249,11 +249,13 @@ exports.handler = async (event, context) => {
       id: Date.now(), // Fallback ID
       idea: idea.trim(),
       code: generatedCode,
-      generated_at: new Date().toISOString()
+      generated_at: new Date().toISOString(),
+      supabaseStatus: 'not_configured'
     };
 
     if (supabase) {
       try {
+        console.log('Attempting to save to Supabase...');
         const { data, error } = await supabase
           .from('generated_code')
           .insert([
@@ -266,10 +268,15 @@ exports.handler = async (event, context) => {
           .single();
 
         if (error) {
-          console.error('Supabase error:', error);
+          console.error('Supabase insertion error:', error);
+          console.error('Error details:', JSON.stringify(error, null, 2));
+          responseData.supabaseStatus = 'error';
+          responseData.supabaseError = error.message;
           // Continue without database, but log the error
         } else {
+          console.log('Successfully saved to Supabase with ID:', data.id);
           responseData.id = data.id;
+          responseData.supabaseStatus = 'success';
           
           // Award "First Idea" badge for new users
           try {
@@ -371,10 +378,14 @@ exports.handler = async (event, context) => {
         }
       } catch (dbError) {
         console.error('Database connection error:', dbError);
+        console.error('Connection error details:', JSON.stringify(dbError, null, 2));
+        responseData.supabaseStatus = 'connection_error';
+        responseData.supabaseError = dbError.message;
         // Continue without database
       }
     } else {
       console.log('Supabase not configured, returning generated code without database storage');
+      responseData.supabaseStatus = 'not_configured';
     }
 
     return {
