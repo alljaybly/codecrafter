@@ -49,29 +49,42 @@ const Badges: React.FC = () => {
   const API_BASE_URL = process.env.REACT_APP_API_URL || '/.netlify/functions';
 
   useEffect(() => {
+    // Initial load
     fetchBadges();
     
-    // Set up real-time updates - refresh every 15 seconds for badges
-    const interval = setInterval(() => {
-      fetchBadges();
-    }, 15000);
-    
-    // Listen for focus events to refresh when user returns to tab
-    const handleFocus = () => {
+    // Set up event-driven updates - only refresh when user performs actions
+    const handleBadgeUpdate = () => {
+      console.log('🏆 Badge update event triggered');
       fetchBadges();
     };
     
+    // Listen for custom badge update events
+    window.addEventListener('badgeUpdate', handleBadgeUpdate);
+    
+    // Listen for focus events to refresh when user returns to tab (less aggressive)
+    const handleFocus = () => {
+      fetchBadges();
+    };
     window.addEventListener('focus', handleFocus);
+    
+    // Optional: Set up a longer interval for background updates (2 minutes instead of 15 seconds)
+    const interval = setInterval(() => {
+      fetchBadges();
+    }, 120000); // 2 minutes
     
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('badgeUpdate', handleBadgeUpdate);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchBadges = async () => {
     try {
-      setLoading(true);
+      // Only show loading on initial load, not on updates
+      if (badges.length === 0) {
+        setLoading(true);
+      }
       setError(null);
       
       // Fetch real badges from the API - no mock data
@@ -90,17 +103,19 @@ const Badges: React.FC = () => {
       
       // Ensure response data is an array
       const badgesData = Array.isArray(responseData) ? responseData : [];
-      console.log('🏆 BADGES DEBUG: Loaded real badges from API:', badgesData.length);
-      console.log('🏆 BADGES DEBUG: Raw response data:', responseData);
-      console.log('🏆 BADGES DEBUG: Badge names:', badgesData.map(b => b.badge_name));
       
-      // Check if we have new badges
-      if (badgesData.length > badges.length) {
-        console.log(`🏆 BADGES DEBUG: Found ${badgesData.length - badges.length} new badges!`);
+      // Only update if data has actually changed
+      const currentBadgeIds = badges.map(b => b.id).sort();
+      const newBadgeIds = badgesData.map(b => b.id).sort();
+      const hasChanged = JSON.stringify(currentBadgeIds) !== JSON.stringify(newBadgeIds);
+      
+      if (hasChanged || badges.length === 0) {
+        console.log('🏆 Badges updated:', badgesData.length, 'badges');
+        if (badgesData.length > badges.length) {
+          console.log(`🎉 New badges earned: ${badgesData.length - badges.length}`);
+        }
+        setBadges(badgesData);
       }
-      
-      setBadges(badgesData);
-      console.log('🏆 BADGES DEBUG: State updated with badges:', badgesData.length);
       
     } catch (apiError) {
       console.error('Failed to fetch badges:', apiError);
@@ -197,10 +212,6 @@ const Badges: React.FC = () => {
 
   const earnedBadges = Array.isArray(badges) ? badges.map(b => b.badge_name) : [];
   const allBadgeNames = Object.keys(badgeDefinitions);
-  
-  console.log('🏆 BADGES RENDER: Current badges state:', badges);
-  console.log('🏆 BADGES RENDER: Earned badges:', earnedBadges);
-  console.log('🏆 BADGES RENDER: All badge names:', allBadgeNames);
 
   return (
     <section id="badges" className="py-16 bg-white" aria-label="Achievement badges section">
@@ -214,7 +225,7 @@ const Badges: React.FC = () => {
             Real-time achievement tracking. Unlock badges as you explore CodeCrafter's features!
           </p>
           <p className="text-sm text-gray-500">
-            Auto-refreshes every 15 seconds • Earn badges by generating ideas and using features
+            Updates automatically when you earn new badges • Generate ideas and use features to unlock achievements
           </p>
         </div>
 
