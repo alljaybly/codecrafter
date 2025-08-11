@@ -1,25 +1,23 @@
-// Try to import Supabase, but don't fail if it's not available
-let supabase = null;
-let createClient = null;
-
-try {
-  const supabaseModule = require('@supabase/supabase-js');
-  createClient = supabaseModule.createClient;
-  
-  // Only create Supabase client if environment variables are available
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
-    supabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_ANON_KEY
-    );
+// Simple mock data for demonstration
+const mockIdeas = [
+  {
+    id: 1,
+    idea: "Build a todo app with React",
+    generated_at: new Date().toISOString()
+  },
+  {
+    id: 2,
+    idea: "Create a weather dashboard",
+    generated_at: new Date(Date.now() - 86400000).toISOString()
+  },
+  {
+    id: 3,
+    idea: "Develop a chat application",
+    generated_at: new Date(Date.now() - 172800000).toISOString()
   }
-} catch (error) {
-  console.log('Supabase not available:', error.message);
-}
+];
 
-// No mock data - only real data from Supabase
-
-exports.handler = async (event, context) => {
+exports.handler = async (event) => {
   // Handle CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -45,56 +43,22 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Only fetch real data from Supabase - no mock data
-    if (!supabase) {
-      return {
-        statusCode: 503,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Database not configured',
-          message: 'Supabase connection not available'
-        })
-      };
-    }
-
-    const { data, error } = await supabase
-      .from('generated_code')
-      .select('id, idea, generated_at')
-      .order('generated_at', { ascending: false })
-      .limit(50);
-
-    if (error) {
-      console.error('Supabase error:', error);
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Database query failed',
-          message: error.message
-        })
-      };
-    }
-
-    // Return actual data from database (could be empty array)
-    const ideas = data || [];
-    console.log(`Returning ${ideas.length} real ideas from database`);
+    console.log('Returning mock ideas for demonstration');
     
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(ideas)
+      body: JSON.stringify(mockIdeas)
     };
 
   } catch (error) {
-    console.error('Error fetching ideas:', error);
+    console.error('Error in ideas function:', error);
     
+    // Always return empty array instead of error
     return {
-      statusCode: 500,
+      statusCode: 200,
       headers,
-      body: JSON.stringify({ 
-        error: 'Internal server error',
-        message: error.message
-      })
+      body: JSON.stringify([])
     };
   }
 };

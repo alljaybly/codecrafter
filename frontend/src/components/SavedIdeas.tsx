@@ -61,20 +61,20 @@ const SavedIdeas: React.FC = () => {
       
     } catch (apiError) {
       console.error('Failed to fetch ideas:', apiError);
-      setIdeas([]); // Set empty array instead of mock data
+      setIdeas([]); // Set empty array - no mock data
       
       if (axios.isAxiosError(apiError)) {
         if (apiError.code === 'ECONNABORTED') {
           setError('Request timeout. Please check your internet connection and try again.');
         } else if (apiError.response?.status === 404) {
-          setError('Ideas service not found. Please try again later.');
+          setError('Ideas service not available. Please try again later.');
         } else if (apiError.response && apiError.response.status >= 500) {
-          setError('Server error. Please try again later.');
+          setError('Database temporarily unavailable. Your ideas will appear here once you generate them.');
         } else {
-          setError('Unable to load saved ideas. Please try again.');
+          setError('Unable to connect to database. Generate ideas to see them appear here.');
         }
       } else {
-        setError('Network error. Please check your connection and try again.');
+        setError('Connection error. Generate ideas and they will appear here once connected.');
       }
     } finally {
       setLoading(false);
