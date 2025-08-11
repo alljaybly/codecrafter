@@ -90,14 +90,17 @@ const Badges: React.FC = () => {
       
       // Ensure response data is an array
       const badgesData = Array.isArray(responseData) ? responseData : [];
-      console.log('Loaded real badges from API:', badgesData.length);
+      console.log('🏆 BADGES DEBUG: Loaded real badges from API:', badgesData.length);
+      console.log('🏆 BADGES DEBUG: Raw response data:', responseData);
+      console.log('🏆 BADGES DEBUG: Badge names:', badgesData.map(b => b.badge_name));
       
       // Check if we have new badges
       if (badgesData.length > badges.length) {
-        console.log(`Found ${badgesData.length - badges.length} new badges!`);
+        console.log(`🏆 BADGES DEBUG: Found ${badgesData.length - badges.length} new badges!`);
       }
       
       setBadges(badgesData);
+      console.log('🏆 BADGES DEBUG: State updated with badges:', badgesData.length);
       
     } catch (apiError) {
       console.error('Failed to fetch badges:', apiError);
@@ -194,6 +197,10 @@ const Badges: React.FC = () => {
 
   const earnedBadges = Array.isArray(badges) ? badges.map(b => b.badge_name) : [];
   const allBadgeNames = Object.keys(badgeDefinitions);
+  
+  console.log('🏆 BADGES RENDER: Current badges state:', badges);
+  console.log('🏆 BADGES RENDER: Earned badges:', earnedBadges);
+  console.log('🏆 BADGES RENDER: All badge names:', allBadgeNames);
 
   return (
     <section id="badges" className="py-16 bg-white" aria-label="Achievement badges section">
