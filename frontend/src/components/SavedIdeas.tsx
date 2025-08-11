@@ -24,42 +24,77 @@ const SavedIdeas: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      // Create mock data for demonstration (always available)
+      const mockIdeas: SavedIdea[] = [
+        {
+          id: 1,
+          idea: 'Create a todo app with user authentication and drag-and-drop functionality',
+          generated_at: new Date(Date.now() - 86400000).toISOString() // 1 day ago
+        },
+        {
+          id: 2,
+          idea: 'Build a weather dashboard with location-based forecasts',
+          generated_at: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
+        },
+        {
+          id: 3,
+          idea: 'Design a simple counter app with increment and decrement buttons',
+          generated_at: new Date(Date.now() - 1800000).toISOString() // 30 minutes ago
+        },
+        {
+          id: 4,
+          idea: 'Create a blog platform with markdown support and comments',
+          generated_at: new Date(Date.now() - 7200000).toISOString() // 2 hours ago
+        },
+        {
+          id: 5,
+          idea: 'Build a real-time chat application with Socket.io',
+          generated_at: new Date(Date.now() - 10800000).toISOString() // 3 hours ago
+        },
+        {
+          id: 6,
+          idea: 'Create an e-commerce platform with payment integration',
+          generated_at: new Date(Date.now() - 172800000).toISOString() // 2 days ago
+        }
+      ];
+      
       // Try to fetch from backend first, then fallback to mock data
       try {
-        const response = await axios.get(`${API_BASE_URL}/ideas`);
-        // Ensure response.data is an array
+        const response = await axios.get(`${API_BASE_URL}/ideas`, {
+          timeout: 5000 // 5 second timeout
+        });
+        
+        // Ensure response.data is an array and has content
         const responseData = Array.isArray(response.data) ? response.data : [];
-        setIdeas(responseData);
+        
+        if (responseData.length > 0) {
+          console.log('Loaded ideas from API:', responseData.length);
+          setIdeas(responseData);
+        } else {
+          console.log('API returned empty array, using mock data');
+          setIdeas(mockIdeas);
+        }
       } catch (apiError) {
-        console.log('API not available, using mock data');
-        // Mock data for demonstration
-        const mockIdeas: SavedIdea[] = [
-          {
-            id: 1,
-            idea: 'Create a todo app with user authentication and drag-and-drop functionality',
-            generated_at: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-          },
-          {
-            id: 2,
-            idea: 'Build a weather dashboard with location-based forecasts',
-            generated_at: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
-          },
-          {
-            id: 3,
-            idea: 'Design a simple counter app with increment and decrement buttons',
-            generated_at: new Date(Date.now() - 1800000).toISOString() // 30 minutes ago
-          },
-          {
-            id: 4,
-            idea: 'Create a blog platform with markdown support and comments',
-            generated_at: new Date(Date.now() - 7200000).toISOString() // 2 hours ago
-          }
-        ];
+        console.log('API not available, using mock data:', apiError);
         setIdeas(mockIdeas);
       }
     } catch (err) {
-      setError('Failed to load saved ideas');
-      console.error('Error fetching ideas:', err);
+      console.error('Error in fetchIdeas:', err);
+      // Even if there's an error, show mock data
+      const fallbackIdeas: SavedIdea[] = [
+        {
+          id: 1,
+          idea: 'Create a todo app with user authentication',
+          generated_at: new Date().toISOString()
+        },
+        {
+          id: 2,
+          idea: 'Build a weather dashboard',
+          generated_at: new Date(Date.now() - 3600000).toISOString()
+        }
+      ];
+      setIdeas(fallbackIdeas);
+      setError('Using demo data - connect to database to see your saved ideas');
     } finally {
       setLoading(false);
     }
