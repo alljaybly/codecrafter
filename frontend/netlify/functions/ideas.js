@@ -35,6 +35,13 @@ exports.handler = async (event) => {
   }
 
   try {
+    // Debug environment variables
+    console.log('Environment check:', {
+      hasSupabaseUrl: !!process.env.SUPABASE_URL,
+      hasSupabaseKey: !!process.env.SUPABASE_ANON_KEY,
+      supabaseUrl: process.env.SUPABASE_URL ? process.env.SUPABASE_URL.substring(0, 20) + '...' : 'undefined'
+    });
+
     if (!supabase) {
       console.log('Supabase not configured - returning empty array');
       return {
@@ -46,6 +53,17 @@ exports.handler = async (event) => {
 
     console.log('Fetching real-time ideas from Supabase...');
     
+    // First, let's try to get a count of all records
+    const { count, error: countError } = await supabase
+      .from('generated_code')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError) {
+      console.error('Error getting count:', countError);
+    } else {
+      console.log(`Total records in database: ${count}`);
+    }
+    
     // Fetch real data from Supabase
     const { data, error } = await supabase
       .from('generated_code')
@@ -55,6 +73,7 @@ exports.handler = async (event) => {
 
     if (error) {
       console.error('Supabase query error:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
       return {
         statusCode: 200,
         headers,
@@ -65,6 +84,10 @@ exports.handler = async (event) => {
     const ideas = data || [];
     console.log(`Successfully fetched ${ideas.length} real ideas from database`);
     
+    if (ideas.length > 0) {
+      console.log('Sample idea:', ideas[0]);
+    }
+    
     return {
       statusCode: 200,
       headers,
@@ -73,6 +96,7 @@ exports.handler = async (event) => {
 
   } catch (error) {
     console.error('Error fetching real-time ideas:', error);
+    console.error('Error stack:', error.stack);
     
     // Return empty array instead of error to prevent 500s
     return {
