@@ -1,21 +1,13 @@
-// Simple mock data for demonstration
-const mockIdeas = [
-  {
-    id: 1,
-    idea: "Build a todo app with React",
-    generated_at: new Date().toISOString()
-  },
-  {
-    id: 2,
-    idea: "Create a weather dashboard",
-    generated_at: new Date(Date.now() - 86400000).toISOString()
-  },
-  {
-    id: 3,
-    idea: "Develop a chat application",
-    generated_at: new Date(Date.now() - 172800000).toISOString()
-  }
-];
+const { createClient } = require('@supabase/supabase-js');
+
+// Initialize Supabase client
+let supabase = null;
+if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
+  supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_ANON_KEY
+  );
+}
 
 exports.handler = async (event) => {
   // Handle CORS
@@ -43,18 +35,46 @@ exports.handler = async (event) => {
   }
 
   try {
-    console.log('Returning mock ideas for demonstration');
+    if (!supabase) {
+      console.log('Supabase not configured - returning empty array');
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify([])
+      };
+    }
+
+    console.log('Fetching real-time ideas from Supabase...');
+    
+    // Fetch real data from Supabase
+    const { data, error } = await supabase
+      .from('generated_code')
+      .select('id, idea, generated_at')
+      .order('generated_at', { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error('Supabase query error:', error);
+      return {
+        statusCode: 200,
+        headers,
+        body: JSON.stringify([])
+      };
+    }
+
+    const ideas = data || [];
+    console.log(`Successfully fetched ${ideas.length} real ideas from database`);
     
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(mockIdeas)
+      body: JSON.stringify(ideas)
     };
 
   } catch (error) {
-    console.error('Error in ideas function:', error);
+    console.error('Error fetching real-time ideas:', error);
     
-    // Always return empty array instead of error
+    // Return empty array instead of error to prevent 500s
     return {
       statusCode: 200,
       headers,
