@@ -6,7 +6,7 @@ async function verifyCodeCrafterComplete() {
   console.log('🏆 FINAL VERIFICATION: CodeCrafter - Code with Kiro Hackathon\n');
 
   const baseUrl = 'https://codecrafter-web.netlify.app';
-  
+
   try {
     // Test 1: Main site accessibility
     console.log('1. ✅ Testing main site accessibility...');
