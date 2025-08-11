@@ -17,29 +17,42 @@ const SavedIdeas: React.FC = () => {
   const API_BASE_URL = process.env.REACT_APP_API_URL || '/.netlify/functions';
 
   useEffect(() => {
+    // Initial load
     fetchIdeas();
     
-    // Set up real-time updates - refresh every 30 seconds
-    const interval = setInterval(() => {
+    // Set up event-driven updates - refresh when new ideas are generated
+    const handleIdeasUpdate = () => {
+      console.log('💡 Ideas update event triggered');
       fetchIdeas();
-    }, 30000);
+    };
+    
+    // Listen for custom ideas update events
+    window.addEventListener('ideasUpdate', handleIdeasUpdate);
     
     // Listen for focus events to refresh when user returns to tab
     const handleFocus = () => {
       fetchIdeas();
     };
-    
     window.addEventListener('focus', handleFocus);
+    
+    // Background sync every 2 minutes (much less aggressive)
+    const interval = setInterval(() => {
+      fetchIdeas();
+    }, 120000); // 2 minutes
     
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('ideasUpdate', handleIdeasUpdate);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchIdeas = async () => {
     try {
-      setLoading(true);
+      // Only show loading on initial load, not on updates
+      if (ideas.length === 0) {
+        setLoading(true);
+      }
       setError(null);
       
       // Fetch real ideas from the API - no mock data
@@ -49,15 +62,20 @@ const SavedIdeas: React.FC = () => {
       
       // Ensure response.data is an array
       const responseData = Array.isArray(response.data) ? response.data : [];
-      console.log('Loaded real ideas from API:', responseData.length);
       
-      // Check if we have new ideas
-      if (responseData.length > ideas.length) {
-        console.log(`Found ${responseData.length - ideas.length} new ideas!`);
+      // Only update if data has actually changed
+      const currentIdeaIds = ideas.map(i => i.id).sort();
+      const newIdeaIds = responseData.map(i => i.id).sort();
+      const hasChanged = JSON.stringify(currentIdeaIds) !== JSON.stringify(newIdeaIds);
+      
+      if (hasChanged || ideas.length === 0) {
+        console.log('💡 Ideas updated:', responseData.length, 'ideas');
+        if (responseData.length > ideas.length) {
+          console.log(`🎉 New ideas found: ${responseData.length - ideas.length}`);
+        }
+        setIdeas(responseData);
+        setLastUpdateTime(new Date());
       }
-      
-      setIdeas(responseData);
-      setLastUpdateTime(new Date());
       
     } catch (apiError) {
       console.error('Failed to fetch ideas:', apiError);
@@ -138,7 +156,7 @@ const SavedIdeas: React.FC = () => {
             Real-time view of your generated ideas. Create new ideas above to see them appear here instantly!
           </p>
           <p className="text-sm text-gray-500">
-            Last updated: {lastUpdateTime.toLocaleTimeString()} • Auto-refreshes every 30 seconds
+            Last updated: {lastUpdateTime.toLocaleTimeString()} • Updates automatically when you generate new ideas
           </p>
         </div>
 

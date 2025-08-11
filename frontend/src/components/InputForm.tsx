@@ -89,9 +89,11 @@ const InputForm: React.FC = () => {
       setGeneratedCode(response.data.code);
       setSuccess('Code generated successfully!');
       
-      // Trigger badge update event
+      // Trigger update events for both badges and ideas
       const badgeUpdateEvent = new CustomEvent('badgeUpdate');
+      const ideasUpdateEvent = new CustomEvent('ideasUpdate');
       window.dispatchEvent(badgeUpdateEvent);
+      window.dispatchEvent(ideasUpdateEvent);
       
       // Reset voice input tracking
       audioChunksRef.current = [];
