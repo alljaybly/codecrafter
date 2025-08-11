@@ -74,6 +74,12 @@ exports.handler = async (event) => {
     if (error) {
       console.error('Supabase query error:', error);
       console.error('Error details:', JSON.stringify(error, null, 2));
+      
+      // If table doesn't exist, provide helpful message
+      if (error.message.includes('table') && error.message.includes('generated_code')) {
+        console.log('Table generated_code does not exist. Please run database setup.');
+      }
+      
       return {
         statusCode: 200,
         headers,

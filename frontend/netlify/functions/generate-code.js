@@ -270,8 +270,16 @@ exports.handler = async (event, context) => {
         if (error) {
           console.error('Supabase insertion error:', error);
           console.error('Error details:', JSON.stringify(error, null, 2));
-          responseData.supabaseStatus = 'error';
-          responseData.supabaseError = error.message;
+          
+          // If table doesn't exist, try to create it
+          if (error.message.includes('table') && error.message.includes('generated_code')) {
+            console.log('Table does not exist. Please create the generated_code table in Supabase.');
+            responseData.supabaseStatus = 'table_missing';
+            responseData.supabaseError = 'Table generated_code does not exist. Please run the database setup script.';
+          } else {
+            responseData.supabaseStatus = 'error';
+            responseData.supabaseError = error.message;
+          }
           // Continue without database, but log the error
         } else {
           console.log('Successfully saved to Supabase with ID:', data.id);
