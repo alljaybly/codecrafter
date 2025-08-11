@@ -46,34 +46,74 @@ const Badges: React.FC = () => {
     }
   };
 
+  const API_BASE_URL = process.env.REACT_APP_API_URL || '/.netlify/functions';
+
   useEffect(() => {
     fetchBadges();
-  }, []);
+    
+    // Set up real-time updates - refresh every 15 seconds for badges
+    const interval = setInterval(() => {
+      fetchBadges();
+    }, 15000);
+    
+    // Listen for focus events to refresh when user returns to tab
+    const handleFocus = () => {
+      fetchBadges();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchBadges = async () => {
     try {
       setLoading(true);
-      // For demo purposes, we'll simulate some badges
-      // In a real app, you'd fetch from your API
-      const mockBadges: Badge[] = [
-        {
-          id: 1,
-          user_id: 'demo-user',
-          badge_name: 'First Idea',
-          awarded_at: new Date().toISOString()
-        },
-        {
-          id: 2,
-          user_id: 'demo-user',
-          badge_name: 'Code Generator',
-          awarded_at: new Date().toISOString()
-        }
-      ];
+      setError(null);
       
-      setBadges(mockBadges);
-    } catch (err) {
-      setError('Failed to load badges');
-      console.error('Error fetching badges:', err);
+      // Fetch real badges from the API - no mock data
+      const response = await fetch(`${API_BASE_URL}/badges`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const responseData = await response.json();
+      
+      // Ensure response data is an array
+      const badgesData = Array.isArray(responseData) ? responseData : [];
+      console.log('Loaded real badges from API:', badgesData.length);
+      
+      // Check if we have new badges
+      if (badgesData.length > badges.length) {
+        console.log(`Found ${badgesData.length - badges.length} new badges!`);
+      }
+      
+      setBadges(badgesData);
+      
+    } catch (apiError) {
+      console.error('Failed to fetch badges:', apiError);
+      setBadges([]); // Set empty array - no mock data
+      
+      if (apiError instanceof Error) {
+        if (apiError.message.includes('404')) {
+          setError('Badges service not available. Please try again later.');
+        } else if (apiError.message.includes('500')) {
+          setError('Database temporarily unavailable. Your badges will appear here once you earn them.');
+        } else {
+          setError('Unable to connect to database. Generate ideas and use features to earn badges.');
+        }
+      } else {
+        setError('Connection error. Earn badges by using CodeCrafter features.');
+      }
     } finally {
       setLoading(false);
     }
@@ -163,9 +203,11 @@ const Badges: React.FC = () => {
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
             Achievement Badges
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Unlock badges as you explore CodeCrafter's features. 
-            Each badge represents a milestone in your coding journey.
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-4">
+            Real-time achievement tracking. Unlock badges as you explore CodeCrafter's features!
+          </p>
+          <p className="text-sm text-gray-500">
+            Auto-refreshes every 15 seconds • Earn badges by generating ideas and using features
           </p>
         </div>
 
