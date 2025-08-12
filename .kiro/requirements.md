@@ -3,6 +3,63 @@
 ## Overview
 The Badge Library is a comprehensive achievement system with 20+ unique badges that users can earn by performing various actions in CodeCrafter. The system uses Supabase for data storage and React with Tailwind CSS for the frontend display.
 
+## Known Issues and Fixes
+
+### Issue 1: npm start fails with "Missing script: start"
+**Status**: FIXED ✅
+**Solution**: Added proper scripts to root package.json:
+```json
+{
+  "scripts": {
+    "start": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "test": "cd frontend && npm test"
+  }
+}
+```
+
+### Issue 2: Badges not displaying at https://codecrafter-web.netlify.app/
+**Status**: FIXED ✅
+**Root Cause**: New badge library API expects enhanced database schema, but current database uses old structure
+**Solution**: Implemented fallback system that works with both old and new badge systems
+**Fallback**: If new badge-library API fails, automatically falls back to old badges API with converted format
+
+### Issue 3: netlify dev fails with site addon errors
+**Status**: FIXED ✅
+**Solution**: Updated netlify.toml with proper configuration:
+```toml
+[build.environment]
+  NODE_VERSION = "20"
+
+[dev]
+  command = "npm start"
+  port = 3000
+  publish = "build"
+  functions = "netlify/functions"
+```
+
+### Issue 4: Kiro terminal hangs on git log --oneline -5
+**Status**: DOCUMENTED ⚠️
+**Root Cause**: Kiro terminal integration has issues with git log output formatting
+**Workaround**: Use PowerShell directly for git commands
+**Files Created**: 
+- `/.kiro/debug.log` - Terminal debug information
+- `/.kiro/git_log_output.txt` - Manual git log output capture
+
+## Database Migration Instructions
+
+To enable the full badge library system with 20+ badges:
+
+1. **Go to Supabase Dashboard**
+2. **Open SQL Editor**
+3. **Run the badge-library-setup.sql script**
+4. **Verify tables created**:
+   - `badges` table with 20+ badge definitions
+   - `user_badges` table for user achievements
+5. **Test the enhanced system**
+
+Until migration is complete, the system uses a fallback that converts the old 6-badge system to the new format.
+
 ## Database Schema
 
 ### Badges Table

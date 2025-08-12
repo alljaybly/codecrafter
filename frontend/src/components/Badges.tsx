@@ -115,39 +115,175 @@ const Badges: React.FC = () => {
       }
       setError(null);
       
-      // Fetch badge library from the API
-      const response = await fetch(`${API_BASE_URL}/badge-library`, {
+      // Try new badge library API first
+      try {
+        const response = await fetch(`${API_BASE_URL}/badge-library`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          const responseData: BadgeLibraryResponse = await response.json();
+          
+          // Only update if data has actually changed
+          const hasChanged = !badgeLibrary || 
+            JSON.stringify(badgeLibrary.userBadges.map(b => b.id).sort()) !== 
+            JSON.stringify(responseData.userBadges.map(b => b.id).sort());
+          
+          if (hasChanged || !badgeLibrary) {
+            console.log('🏆 Badge library updated:', responseData.stats);
+            if (badgeLibrary && responseData.userBadges.length > badgeLibrary.userBadges.length) {
+              console.log(`🎉 New badges earned: ${responseData.userBadges.length - badgeLibrary.userBadges.length}`);
+            }
+            setBadgeLibrary(responseData);
+          }
+          return;
+        }
+      } catch (newApiError) {
+        console.log('New badge library API not available, falling back to old system');
+      }
+      
+      // Fallback to old badge system
+      const oldResponse = await fetch(`${API_BASE_URL}/badges`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+      if (!oldResponse.ok) {
+        throw new Error(`HTTP error! status: ${oldResponse.status}`);
       }
       
-      const responseData: BadgeLibraryResponse = await response.json();
+      const oldBadges = await oldResponse.json();
       
-      // Only update if data has actually changed
-      const hasChanged = !badgeLibrary || 
-        JSON.stringify(badgeLibrary.userBadges.map(b => b.id).sort()) !== 
-        JSON.stringify(responseData.userBadges.map(b => b.id).sort());
-      
-      if (hasChanged || !badgeLibrary) {
-        console.log('🏆 Badge library updated:', responseData.stats);
-        if (badgeLibrary && responseData.userBadges.length > badgeLibrary.userBadges.length) {
-          console.log(`🎉 New badges earned: ${responseData.userBadges.length - badgeLibrary.userBadges.length}`);
+      // Convert old badge format to new format
+      const convertedBadgeLibrary: BadgeLibraryResponse = {
+        badges: [
+          {
+            id: '1',
+            name: 'Early Adopter',
+            description: 'One of the first users of CodeCrafter',
+            color: 'red-500',
+            icon: 'HiStar',
+            criteria: 'early_user',
+            category: 'starter',
+            rarity: 'rare',
+            points: 25,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: '2',
+            name: 'Idea Pioneer',
+            description: 'Submitted your first brilliant idea',
+            color: 'blue-500',
+            icon: 'HiLightBulb',
+            criteria: 'first_idea',
+            category: 'starter',
+            rarity: 'common',
+            points: 10,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: '3',
+            name: 'Code Wizard',
+            description: 'Generated your first piece of code',
+            color: 'green-500',
+            icon: 'HiCode',
+            criteria: 'first_code',
+            category: 'starter',
+            rarity: 'common',
+            points: 10,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: '4',
+            name: 'Todo Master',
+            description: 'Created a todo application idea',
+            color: 'yellow-500',
+            icon: 'HiCheckCircle',
+            criteria: 'todo_app',
+            category: 'specialty',
+            rarity: 'common',
+            points: 15,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: '5',
+            name: 'Weather Wizard',
+            description: 'Built a weather application idea',
+            color: 'cyan-500',
+            icon: 'HiSun',
+            criteria: 'weather_app',
+            category: 'specialty',
+            rarity: 'common',
+            points: 15,
+            created_at: new Date().toISOString()
+          },
+          {
+            id: '6',
+            name: 'Voice Master',
+            description: 'Used voice input to describe an idea',
+            color: 'purple-500',
+            icon: 'HiMicrophone',
+            criteria: 'first_voice',
+            category: 'starter',
+            rarity: 'common',
+            points: 15,
+            created_at: new Date().toISOString()
+          }
+        ],
+        userBadges: Array.isArray(oldBadges) ? oldBadges.map((badge: any, index: number) => ({
+          id: `ub${index + 1}`,
+          user_id: badge.user_id || 'demo-user',
+          badge_id: String(index + 1),
+          awarded_at: badge.awarded_at || new Date().toISOString(),
+          badge: {
+            id: String(index + 1),
+            name: badge.badge_name || badge.name || 'Unknown Badge',
+            description: 'Legacy badge from old system',
+            color: 'gray-500',
+            icon: 'HiStar',
+            criteria: 'legacy',
+            category: 'legacy',
+            rarity: 'common',
+            points: 10,
+            created_at: new Date().toISOString()
+          }
+        })) : [],
+        stats: {
+          totalBadges: 6,
+          earnedBadges: Array.isArray(oldBadges) ? oldBadges.length : 0,
+          totalPoints: Array.isArray(oldBadges) ? oldBadges.length * 10 : 0,
+          completionPercentage: Array.isArray(oldBadges) ? Math.round((oldBadges.length / 6) * 100) : 0
         }
-        setBadgeLibrary(responseData);
-      }
+      };
+      
+      setBadgeLibrary(convertedBadgeLibrary);
+      console.log('🏆 Using fallback badge system with', convertedBadgeLibrary.stats.earnedBadges, 'badges');
       
     } catch (apiError) {
-      console.error('Failed to fetch badge library:', apiError);
+      console.error('Failed to fetch badges:', apiError);
+      
+      // Create empty badge library as final fallback
+      const emptyBadgeLibrary: BadgeLibraryResponse = {
+        badges: [],
+        userBadges: [],
+        stats: {
+          totalBadges: 0,
+          earnedBadges: 0,
+          totalPoints: 0,
+          completionPercentage: 0
+        }
+      };
+      
+      setBadgeLibrary(emptyBadgeLibrary);
       
       if (apiError instanceof Error) {
         if (apiError.message.includes('404')) {
-          setError('Badge library service not available. Please try again later.');
+          setError('Badge service not available. Please try again later.');
         } else if (apiError.message.includes('500')) {
           setError('Database temporarily unavailable. Your badges will appear here once you earn them.');
         } else {

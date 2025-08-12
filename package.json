@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "Full-stack code generation application",
   "scripts": {
+    "start": "cd frontend && npm start",
+    "build": "cd frontend && npm run build",
+    "test": "cd frontend && npm test",
     "setup": "node setup-env.js",
     "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install && cd ..",
     "dev-backend": "cd backend && npm run dev",
@@ -10,7 +13,7 @@
     "build-frontend": "cd frontend && npm run build",
     "deploy-backend": "node deploy-backend.js",
     "test-backend": "curl http://localhost:3001/health",
-    "help": "echo 'Available commands: setup, install-all, dev-backend, dev-frontend, build-frontend, deploy-backend'"
+    "help": "echo 'Available commands: start, build, test, setup, install-all, dev-backend, dev-frontend, build-frontend, deploy-backend'"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.26.0"
