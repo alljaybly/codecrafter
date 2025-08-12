@@ -1,7 +1,76 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Badges from '../Badges';
+
+// Mock react-icons
+jest.mock('react-icons/hi', () => ({
+  HiLightBulb: () => <div data-testid="icon-lightbulb">💡</div>,
+  HiMicrophone: () => <div data-testid="icon-microphone">🎤</div>,
+  HiCode: () => <div data-testid="icon-code">⚡</div>,
+  HiStar: () => <div data-testid="icon-star">⭐</div>,
+  HiCog: () => <div data-testid="icon-cog">⚙️</div>,
+}));
+
+// Mock fetch for badge library API
+global.fetch = jest.fn(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({
+      badges: [
+        {
+          id: '1',
+          name: 'Idea Pioneer',
+          description: 'Submitted your first brilliant idea',
+          color: 'blue-500',
+          icon: 'HiLightBulb',
+          criteria: 'first_idea',
+          category: 'starter',
+          rarity: 'common',
+          points: 10,
+          created_at: '2025-01-01T00:00:00Z'
+        },
+        {
+          id: '2',
+          name: 'Voice Master',
+          description: 'Used voice input to describe an idea',
+          color: 'purple-500',
+          icon: 'HiMicrophone',
+          criteria: 'first_voice',
+          category: 'starter',
+          rarity: 'common',
+          points: 15,
+          created_at: '2025-01-01T00:00:00Z'
+        }
+      ],
+      userBadges: [
+        {
+          id: 'ub1',
+          user_id: 'demo-user',
+          badge_id: '1',
+          awarded_at: '2025-01-01T12:00:00Z',
+          badge: {
+            id: '1',
+            name: 'Idea Pioneer',
+            description: 'Submitted your first brilliant idea',
+            color: 'blue-500',
+            icon: 'HiLightBulb',
+            criteria: 'first_idea',
+            category: 'starter',
+            rarity: 'common',
+            points: 10
+          }
+        }
+      ],
+      stats: {
+        totalBadges: 2,
+        earnedBadges: 1,
+        totalPoints: 10,
+        completionPercentage: 50
+      }
+    })
+  })
+) as jest.Mock;
 
 // Mock scrollIntoView
 Element.prototype.scrollIntoView = jest.fn();
@@ -11,11 +80,11 @@ describe('Badges', () => {
     jest.clearAllMocks();
   });
 
-  test('renders badges section with header', () => {
+  test('renders badge library section with header', () => {
     render(<Badges />);
     
-    expect(screen.getByText('Achievement Badges')).toBeInTheDocument();
-    expect(screen.getByText(/unlock badges as you explore codecrafter/i)).toBeInTheDocument();
+    expect(screen.getByText('Badge Library')).toBeInTheDocument();
+    expect(screen.getByText(/discover and collect 20\+ unique achievement badges/i)).toBeInTheDocument();
   });
 
   test('shows loading state initially', () => {
@@ -25,26 +94,25 @@ describe('Badges', () => {
     expect(screen.getByRole('status', { name: /loading badges/i })).toBeInTheDocument();
   });
 
-  test('displays badge statistics after loading', async () => {
+  test('displays badge library statistics after loading', async () => {
     render(<Badges />);
     
     await waitFor(() => {
-      expect(screen.getByText('2')).toBeInTheDocument(); // Badges Earned
-      expect(screen.getByText('6')).toBeInTheDocument(); // Total Available
-      expect(screen.getByText('33%')).toBeInTheDocument(); // Completion percentage
+      expect(screen.getByText('1')).toBeInTheDocument(); // Badges Earned
+      expect(screen.getByText('2')).toBeInTheDocument(); // Total Available
+      expect(screen.getByText('50%')).toBeInTheDocument(); // Completion percentage
+      expect(screen.getByText('10')).toBeInTheDocument(); // Total Points
     });
   });
 
-  test('renders all badge types', async () => {
+  test('renders badge library badges', async () => {
     render(<Badges />);
     
     await waitFor(() => {
-      expect(screen.getByText('First Idea')).toBeInTheDocument();
-      expect(screen.getByText('Voice Input Used')).toBeInTheDocument();
-      expect(screen.getByText('Code Generator')).toBeInTheDocument();
-      expect(screen.getByText('Todo Master')).toBeInTheDocument();
-      expect(screen.getByText('Weather Wizard')).toBeInTheDocument();
-      expect(screen.getByText('Early Adopter')).toBeInTheDocument();
+      expect(screen.getByText('Idea Pioneer')).toBeInTheDocument();
+      expect(screen.getByText('Voice Master')).toBeInTheDocument();
+      expect(screen.getByText('Submitted your first brilliant idea')).toBeInTheDocument();
+      expect(screen.getByText('Used voice input to describe an idea')).toBeInTheDocument();
     });
   });
 
@@ -52,13 +120,14 @@ describe('Badges', () => {
     render(<Badges />);
     
     await waitFor(() => {
-      // First Idea badge should be earned (has checkmark)
-      const firstIdeaBadge = screen.getByText('First Idea').closest('div');
-      expect(firstIdeaBadge).toHaveClass('bg-blue-500');
+      // Idea Pioneer badge should be earned (has gradient background)
+      const ideaPioneerBadge = screen.getByText('Idea Pioneer').closest('div');
+      expect(ideaPioneerBadge).toHaveClass('bg-gradient-to-r');
       
-      // Voice Input Used badge should not be earned
-      const voiceBadge = screen.getByText('Voice Input Used').closest('div');
+      // Voice Master badge should not be earned (has gray background)
+      const voiceBadge = screen.getByText('Voice Master').closest('div');
       expect(voiceBadge).toHaveClass('bg-gray-100');
+      expect(voiceBadge).toHaveClass('opacity-50');
     });
   });
 

@@ -1,76 +1,104 @@
 import React, { useState, useEffect } from 'react';
+import * as HiIcons from 'react-icons/hi';
 
 interface Badge {
-  id: number;
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  icon: string;
+  criteria: string;
+  category: string;
+  rarity: string;
+  points: number;
+  created_at: string;
+}
+
+interface UserBadge {
+  id: string;
   user_id: string;
-  badge_name: string;
+  badge_id: string;
   awarded_at: string;
+  badge: Badge;
+}
+
+interface BadgeLibraryResponse {
+  badges: Badge[];
+  userBadges: UserBadge[];
+  stats: {
+    totalBadges: number;
+    earnedBadges: number;
+    totalPoints: number;
+    completionPercentage: number;
+  };
 }
 
 const Badges: React.FC = () => {
-  const [badges, setBadges] = useState<Badge[]>([]);
+  const [badgeLibrary, setBadgeLibrary] = useState<BadgeLibraryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  // Badge definitions with icons and descriptions
-  const badgeDefinitions = {
-    'First Idea': {
-      icon: '🎯',
-      description: 'Submitted your first app idea',
-      color: 'bg-blue-500'
+  // Rarity colors and styles
+  const rarityStyles = {
+    common: {
+      border: 'border-gray-300',
+      glow: 'shadow-md',
+      textColor: 'text-gray-700'
     },
-    'Voice Input Used': {
-      icon: '🎤',
-      description: 'Used voice input to describe an idea',
-      color: 'bg-purple-500'
+    rare: {
+      border: 'border-blue-400',
+      glow: 'shadow-lg shadow-blue-200',
+      textColor: 'text-blue-700'
     },
-    'Code Generator': {
-      icon: '⚡',
-      description: 'Generated your first piece of code',
-      color: 'bg-green-500'
+    epic: {
+      border: 'border-purple-400',
+      glow: 'shadow-lg shadow-purple-200',
+      textColor: 'text-purple-700'
     },
-    'Todo Master': {
-      icon: '✅',
-      description: 'Created a todo application',
-      color: 'bg-yellow-500'
-    },
-    'Weather Wizard': {
-      icon: '🌤️',
-      description: 'Built a weather application',
-      color: 'bg-cyan-500'
-    },
-    'Early Adopter': {
-      icon: '🚀',
-      description: 'One of the first users of CodeCrafter',
-      color: 'bg-red-500'
+    legendary: {
+      border: 'border-yellow-400',
+      glow: 'shadow-xl shadow-yellow-200',
+      textColor: 'text-yellow-700'
     }
+  };
+
+  // Category colors
+  const categoryColors = {
+    all: 'bg-gray-500',
+    starter: 'bg-green-500',
+    productivity: 'bg-blue-500',
+    consistency: 'bg-orange-500',
+    specialty: 'bg-purple-500',
+    technical: 'bg-cyan-500',
+    achievement: 'bg-pink-500'
   };
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || '/.netlify/functions';
 
   useEffect(() => {
     // Initial load
-    fetchBadges();
+    fetchBadgeLibrary();
     
-    // Set up event-driven updates - only refresh when user performs actions
+    // Set up event-driven updates
     const handleBadgeUpdate = () => {
-      console.log('🏆 Badge update event triggered');
-      fetchBadges();
+      console.log('🏆 Badge library update event triggered');
+      fetchBadgeLibrary();
     };
     
     // Listen for custom badge update events
     window.addEventListener('badgeUpdate', handleBadgeUpdate);
     
-    // Listen for focus events to refresh when user returns to tab (less aggressive)
+    // Listen for focus events to refresh when user returns to tab
     const handleFocus = () => {
-      fetchBadges();
+      fetchBadgeLibrary();
     };
     window.addEventListener('focus', handleFocus);
     
-    // Optional: Set up a longer interval for background updates (2 minutes instead of 15 seconds)
+    // Background sync every 2 minutes
     const interval = setInterval(() => {
-      fetchBadges();
-    }, 120000); // 2 minutes
+      fetchBadgeLibrary();
+    }, 120000);
     
     return () => {
       clearInterval(interval);
@@ -79,16 +107,16 @@ const Badges: React.FC = () => {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const fetchBadges = async () => {
+  const fetchBadgeLibrary = async () => {
     try {
-      // Only show loading on initial load, not on updates
-      if (badges.length === 0) {
+      // Only show loading on initial load
+      if (!badgeLibrary) {
         setLoading(true);
       }
       setError(null);
       
-      // Fetch real badges from the API - no mock data
-      const response = await fetch(`${API_BASE_URL}/badges`, {
+      // Fetch badge library from the API
+      const response = await fetch(`${API_BASE_URL}/badge-library`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -99,31 +127,27 @@ const Badges: React.FC = () => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      const responseData = await response.json();
-      
-      // Ensure response data is an array
-      const badgesData = Array.isArray(responseData) ? responseData : [];
+      const responseData: BadgeLibraryResponse = await response.json();
       
       // Only update if data has actually changed
-      const currentBadgeIds = badges.map(b => b.id).sort();
-      const newBadgeIds = badgesData.map(b => b.id).sort();
-      const hasChanged = JSON.stringify(currentBadgeIds) !== JSON.stringify(newBadgeIds);
+      const hasChanged = !badgeLibrary || 
+        JSON.stringify(badgeLibrary.userBadges.map(b => b.id).sort()) !== 
+        JSON.stringify(responseData.userBadges.map(b => b.id).sort());
       
-      if (hasChanged || badges.length === 0) {
-        console.log('🏆 Badges updated:', badgesData.length, 'badges');
-        if (badgesData.length > badges.length) {
-          console.log(`🎉 New badges earned: ${badgesData.length - badges.length}`);
+      if (hasChanged || !badgeLibrary) {
+        console.log('🏆 Badge library updated:', responseData.stats);
+        if (badgeLibrary && responseData.userBadges.length > badgeLibrary.userBadges.length) {
+          console.log(`🎉 New badges earned: ${responseData.userBadges.length - badgeLibrary.userBadges.length}`);
         }
-        setBadges(badgesData);
+        setBadgeLibrary(responseData);
       }
       
     } catch (apiError) {
-      console.error('Failed to fetch badges:', apiError);
-      setBadges([]); // Set empty array - no mock data
+      console.error('Failed to fetch badge library:', apiError);
       
       if (apiError instanceof Error) {
         if (apiError.message.includes('404')) {
-          setError('Badges service not available. Please try again later.');
+          setError('Badge library service not available. Please try again later.');
         } else if (apiError.message.includes('500')) {
           setError('Database temporarily unavailable. Your badges will appear here once you earn them.');
         } else {
@@ -137,29 +161,44 @@ const Badges: React.FC = () => {
     }
   };
 
-  const renderBadge = (badgeName: string, isEarned: boolean = false, awardedAt?: string) => {
-    const badge = badgeDefinitions[badgeName as keyof typeof badgeDefinitions];
-    if (!badge) return null;
-
+  const renderBadge = (badge: Badge, isEarned: boolean = false, awardedAt?: string) => {
+    const IconComponent = HiIcons[badge.icon as keyof typeof HiIcons] as React.ComponentType<any>;
+    const rarityStyle = rarityStyles[badge.rarity as keyof typeof rarityStyles];
+    
     return (
       <div
-        className={`relative p-6 rounded-xl border-2 transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-opacity-50 ${
+        className={`relative p-6 rounded-xl border-2 transition-all duration-300 hover:scale-110 transform cursor-pointer ${
           isEarned
-            ? `${badge.color} text-white shadow-lg transform hover:scale-105 animate-bounce-in`
-            : 'bg-gray-100 border-gray-300 text-gray-400 hover:bg-gray-200'
+            ? `bg-gradient-to-r from-${badge.color} to-${badge.color.replace('-500', '-600')} text-white ${rarityStyle.glow} ${rarityStyle.border}`
+            : `bg-gray-100 ${rarityStyle.border} opacity-50 hover:opacity-75`
         }`}
         role="article"
-        aria-label={`${badgeName} badge ${isEarned ? 'earned' : 'not earned'}`}
+        aria-label={`Badge: ${badge.name} - ${badge.description} ${isEarned ? '(earned)' : '(not earned)'}`}
         tabIndex={0}
       >
         <div className="text-center">
-          <div className="text-4xl mb-3" role="img" aria-label={`${badgeName} icon`}>
-            {badge.icon}
+          <div className="flex justify-center mb-3">
+            {IconComponent && (
+              <IconComponent 
+                className={`w-8 h-8 ${isEarned ? 'text-white' : 'text-gray-400'}`}
+                aria-hidden="true"
+              />
+            )}
           </div>
-          <h3 className="text-lg font-semibold mb-2">{badgeName}</h3>
-          <p className={`text-sm ${isEarned ? 'text-white/90' : 'text-gray-500'}`}>
+          <h3 className={`text-lg font-bold mb-2 ${isEarned ? 'text-white' : 'text-gray-600'}`}>
+            {badge.name}
+          </h3>
+          <p className={`text-sm mb-2 ${isEarned ? 'text-white/90' : 'text-gray-500'}`}>
             {badge.description}
           </p>
+          <div className={`text-xs ${isEarned ? 'text-white/80' : 'text-gray-400'}`}>
+            <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold mb-1 ${
+              isEarned ? 'bg-white/20' : 'bg-gray-200'
+            }`}>
+              {badge.rarity.toUpperCase()}
+            </span>
+            <div>{badge.points} points</div>
+          </div>
           {isEarned && awardedAt && (
             <p className="text-xs text-white/70 mt-2">
               Earned {new Date(awardedAt).toLocaleDateString()}
@@ -168,12 +207,15 @@ const Badges: React.FC = () => {
         </div>
         {isEarned && (
           <div 
-            className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold animate-bounce-in"
+            className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold animate-bounce"
             aria-label="Badge earned"
             role="img"
           >
             ✓
           </div>
+        )}
+        {badge.rarity === 'legendary' && (
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-yellow-400/20 to-orange-400/20 pointer-events-none animate-pulse"></div>
         )}
       </div>
     );
@@ -210,8 +252,28 @@ const Badges: React.FC = () => {
     );
   }
 
-  const earnedBadges = Array.isArray(badges) ? badges.map(b => b.badge_name) : [];
-  const allBadgeNames = Object.keys(badgeDefinitions);
+  if (!badgeLibrary) {
+    return null;
+  }
+
+  const { badges, userBadges, stats } = badgeLibrary;
+  const earnedBadgeIds = userBadges.map(ub => ub.badge_id);
+  
+  // Filter badges by category
+  const filteredBadges = selectedCategory === 'all' 
+    ? badges 
+    : badges.filter(badge => badge.category === selectedCategory);
+  
+  // Get unique categories
+  const categories = ['all', ...Array.from(new Set(badges.map(b => b.category)))];
+  
+  // Group badges by rarity for display
+  const badgesByRarity = {
+    legendary: filteredBadges.filter(b => b.rarity === 'legendary'),
+    epic: filteredBadges.filter(b => b.rarity === 'epic'),
+    rare: filteredBadges.filter(b => b.rarity === 'rare'),
+    common: filteredBadges.filter(b => b.rarity === 'common')
+  };
 
   return (
     <section id="badges" className="py-16 bg-white" aria-label="Achievement badges section">
@@ -219,10 +281,10 @@ const Badges: React.FC = () => {
         {/* Header */}
         <div className="text-center mb-12 animate-fade-in">
           <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Achievement Badges
+            Badge Library
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-4">
-            Real-time achievement tracking. Unlock badges as you explore CodeCrafter's features!
+            Discover and collect 20+ unique achievement badges! Each badge represents a milestone in your coding journey.
           </p>
           <p className="text-sm text-gray-500">
             Updates automatically when you earn new badges • Generate ideas and use features to unlock achievements
@@ -230,27 +292,56 @@ const Badges: React.FC = () => {
         </div>
 
         {/* Stats */}
-        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 mb-12 animate-slide-up">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-8 mb-8 animate-slide-up">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
             <div>
-              <div className="text-3xl font-bold text-blue-600 mb-2" aria-label={`${earnedBadges.length} badges earned`}>
-                {earnedBadges.length}
+              <div className="text-3xl font-bold text-blue-600 mb-2" aria-label={`${stats.earnedBadges} badges earned`}>
+                {stats.earnedBadges}
               </div>
               <div className="text-gray-600">Badges Earned</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-purple-600 mb-2" aria-label={`${allBadgeNames.length} total badges available`}>
-                {allBadgeNames.length}
+              <div className="text-3xl font-bold text-purple-600 mb-2" aria-label={`${stats.totalBadges} total badges available`}>
+                {stats.totalBadges}
               </div>
               <div className="text-gray-600">Total Available</div>
             </div>
             <div>
-              <div className="text-3xl font-bold text-green-600 mb-2" aria-label={`${Math.round((earnedBadges.length / allBadgeNames.length) * 100)}% completion rate`}>
-                {Math.round((earnedBadges.length / allBadgeNames.length) * 100)}%
+              <div className="text-3xl font-bold text-green-600 mb-2" aria-label={`${stats.completionPercentage}% completion rate`}>
+                {stats.completionPercentage}%
               </div>
               <div className="text-gray-600">Completion</div>
             </div>
+            <div>
+              <div className="text-3xl font-bold text-yellow-600 mb-2" aria-label={`${stats.totalPoints} total points earned`}>
+                {stats.totalPoints}
+              </div>
+              <div className="text-gray-600">Total Points</div>
+            </div>
           </div>
+        </div>
+
+        {/* Category Filter */}
+        <div className="flex flex-wrap justify-center gap-2 mb-8">
+          {categories.map(category => (
+            <button
+              key={category}
+              onClick={() => setSelectedCategory(category)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                selectedCategory === category
+                  ? `${categoryColors[category as keyof typeof categoryColors]} text-white shadow-lg`
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+              aria-label={`Filter badges by ${category} category`}
+            >
+              {category.charAt(0).toUpperCase() + category.slice(1)}
+              {category !== 'all' && (
+                <span className="ml-1 text-xs opacity-75">
+                  ({badges.filter(b => b.category === category).length})
+                </span>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Error State */}
@@ -263,45 +354,70 @@ const Badges: React.FC = () => {
               <p className="text-red-600">{error}</p>
             </div>
             <button
-              onClick={fetchBadges}
+              onClick={fetchBadgeLibrary}
               className="mt-2 text-red-600 hover:text-red-800 underline text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 rounded"
-              aria-label="Retry loading badges"
+              aria-label="Retry loading badge library"
             >
               Try again
             </button>
           </div>
         )}
 
-        {/* Badges Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label="Achievement badges">
-          {allBadgeNames.map((badgeName, index) => {
-            const earnedBadge = Array.isArray(badges) ? badges.find(b => b.badge_name === badgeName) : undefined;
-            return (
-              <div
-                key={badgeName}
-                className="animate-fade-in-up"
-                style={{ animationDelay: `${index * 100}ms` }}
-                role="listitem"
-              >
-                {renderBadge(
-                  badgeName,
-                  !!earnedBadge,
-                  earnedBadge?.awarded_at
-                )}
+        {/* Badges Grid by Rarity */}
+        {Object.entries(badgesByRarity).map(([rarity, rarityBadges]) => {
+          if (rarityBadges.length === 0) return null;
+          
+          return (
+            <div key={rarity} className="mb-12">
+              <h3 className={`text-2xl font-bold mb-6 text-center ${rarityStyles[rarity as keyof typeof rarityStyles].textColor}`}>
+                {rarity.charAt(0).toUpperCase() + rarity.slice(1)} Badges
+                <span className="text-sm font-normal ml-2 opacity-75">
+                  ({rarityBadges.filter(b => earnedBadgeIds.includes(b.id)).length}/{rarityBadges.length})
+                </span>
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="list" aria-label={`${rarity} badges`}>
+                {rarityBadges.map((badge, index) => {
+                  const userBadge = userBadges.find(ub => ub.badge_id === badge.id);
+                  const isEarned = !!userBadge;
+                  
+                  return (
+                    <div
+                      key={badge.id}
+                      className="animate-fade-in-up"
+                      style={{ animationDelay: `${index * 50}ms` }}
+                      role="listitem"
+                    >
+                      {renderBadge(badge, isEarned, userBadge?.awarded_at)}
+                    </div>
+                  );
+                })}
               </div>
-            );
-          })}
-        </div>
+            </div>
+          );
+        })}
 
-        {/* Call to Action */}
+        {/* Progress and Call to Action */}
         <div className="text-center mt-12">
-          <div className="bg-gray-50 rounded-2xl p-8">
+          <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-8">
             <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              Start Earning Badges Today!
+              {stats.earnedBadges === 0 ? 'Start Your Badge Collection!' : 'Keep Collecting Badges!'}
             </h3>
             <p className="text-gray-600 mb-6">
-              Use CodeCrafter to generate your first app and unlock the "First Idea" badge.
+              {stats.earnedBadges === 0 
+                ? 'Generate your first idea to unlock the "Idea Pioneer" badge and begin your journey!'
+                : `You've earned ${stats.earnedBadges} badges and ${stats.totalPoints} points. Keep going to unlock more achievements!`
+              }
             </p>
+            
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-500"
+                style={{ width: `${stats.completionPercentage}%` }}
+                aria-label={`${stats.completionPercentage}% progress`}
+              ></div>
+            </div>
+            
             <button
               onClick={() => {
                 const element = document.getElementById('home');
@@ -309,10 +425,10 @@ const Badges: React.FC = () => {
                   element.scrollIntoView({ behavior: 'smooth' });
                 }
               }}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              aria-label="Go to code generator to start earning badges"
+              className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transform hover:scale-105"
+              aria-label="Go to code generator to earn more badges"
             >
-              Get Started
+              {stats.earnedBadges === 0 ? 'Start Earning Badges' : 'Earn More Badges'}
             </button>
           </div>
         </div>

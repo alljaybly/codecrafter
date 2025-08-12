@@ -192,6 +192,93 @@ const MyApp: React.FC = () => {
 export default MyApp;`
 };
 
+// Badge awarding function
+const awardBadges = async (supabase, userId, idea, usedVoiceInput) => {
+  const newBadges = [];
+  
+  try {
+    // Get user's current badge count for progression badges
+    const { data: userBadgeCount } = await supabase
+      .from('user_badges')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userId);
+    
+    const currentBadgeCount = userBadgeCount || 0;
+    
+    // Get user's idea count for progression badges
+    const { data: ideaCount } = await supabase
+      .from('generated_code')
+      .select('id', { count: 'exact' })
+      .eq('user_id', userId || 'demo-user'); // Fallback for current system
+    
+    const currentIdeaCount = (ideaCount || 0) + 1; // +1 for current idea
+    
+    // Define badge criteria to check
+    const badgeCriteria = [
+      { criteria: 'first_idea', condition: currentIdeaCount === 1 },
+      { criteria: 'first_code', condition: true }, // Always award on code generation
+      { criteria: 'first_voice', condition: usedVoiceInput },
+      { criteria: 'ideas_5', condition: currentIdeaCount >= 5 },
+      { criteria: 'ideas_10', condition: currentIdeaCount >= 10 },
+      { criteria: 'ideas_25', condition: currentIdeaCount >= 25 },
+      { criteria: 'ideas_50', condition: currentIdeaCount >= 50 },
+      { criteria: 'voice_10', condition: usedVoiceInput }, // Simplified for demo
+      { criteria: 'todo_app', condition: idea.toLowerCase().includes('todo') || idea.toLowerCase().includes('task') },
+      { criteria: 'weather_app', condition: idea.toLowerCase().includes('weather') },
+      { criteria: 'game_app', condition: idea.toLowerCase().includes('game') },
+      { criteria: 'ecommerce_app', condition: idea.toLowerCase().includes('shop') || idea.toLowerCase().includes('store') || idea.toLowerCase().includes('ecommerce') },
+      { criteria: 'social_app', condition: idea.toLowerCase().includes('social') || idea.toLowerCase().includes('chat') || idea.toLowerCase().includes('message') },
+      { criteria: 'ai_app', condition: idea.toLowerCase().includes('ai') || idea.toLowerCase().includes('artificial intelligence') || idea.toLowerCase().includes('machine learning') },
+      { criteria: 'night_activity', condition: new Date().getHours() >= 22 || new Date().getHours() <= 6 },
+      { criteria: 'weekend_activity', condition: [0, 6].includes(new Date().getDay()) }
+    ];
+    
+    // Check each criteria and award badges
+    for (const { criteria, condition } of badgeCriteria) {
+      if (!condition) continue;
+      
+      // Get badge info
+      const { data: badge } = await supabase
+        .from('badges')
+        .select('*')
+        .eq('criteria', criteria)
+        .single();
+      
+      if (!badge) continue;
+      
+      // Check if user already has this badge
+      const { data: existingUserBadge } = await supabase
+        .from('user_badges')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('badge_id', badge.id)
+        .maybeSingle();
+      
+      if (!existingUserBadge) {
+        // Award the badge
+        const { data: newUserBadge, error } = await supabase
+          .from('user_badges')
+          .insert([{
+            user_id: userId,
+            badge_id: badge.id,
+            awarded_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+        
+        if (!error && newUserBadge) {
+          newBadges.push(badge);
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error in badge awarding logic:', error);
+  }
+  
+  return newBadges;
+};
+
 // Helper function to determine code template based on idea
 const getCodeTemplate = (idea) => {
   const lowerIdea = idea.toLowerCase();
@@ -286,101 +373,19 @@ exports.handler = async (event, context) => {
           responseData.id = data.id;
           responseData.supabaseStatus = 'success';
           
-          // Award "First Idea" badge for new users
+          // Award badges using new badge library system
           try {
             const userId = 'demo-user'; // In a real app, this would come from authentication
+            const newBadges = await awardBadges(supabase, userId, idea.trim(), usedVoiceInput);
             
-            // Check if user already has the "First Idea" badge
-            const { data: existingBadge, error: badgeCheckError } = await supabase
-              .from('badges')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('badge_name', 'First Idea')
-              .maybeSingle();
-
-            if (badgeCheckError && badgeCheckError.code !== 'PGRST116') {
-              console.error('Error checking existing badge:', badgeCheckError);
-            }
-
-            if (!existingBadge) {
-              // Award the badge
-              await supabase
-                .from('badges')
-                .insert([
-                  {
-                    user_id: userId,
-                    badge_name: 'First Idea',
-                    awarded_at: new Date().toISOString()
-                  }
-                ]);
-              console.log('Awarded "First Idea" badge to user');
-            }
-
-            // Award "Voice Input Used" badge if voice was used
-            if (usedVoiceInput) {
-              const { data: existingVoiceBadge, error: voiceBadgeError } = await supabase
-                .from('badges')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('badge_name', 'Voice Input Used')
-                .maybeSingle();
-
-              if (voiceBadgeError && voiceBadgeError.code !== 'PGRST116') {
-                console.error('Error checking voice badge:', voiceBadgeError);
-              }
-
-              if (!existingVoiceBadge) {
-                await supabase
-                  .from('badges')
-                  .insert([
-                    {
-                      user_id: userId,
-                      badge_name: 'Voice Input Used',
-                      awarded_at: new Date().toISOString()
-                    }
-                  ]);
-                console.log('Awarded "Voice Input Used" badge to user');
-              }
-            }
-
-            // Award specific badges based on idea content
-            const lowerIdea = idea.toLowerCase();
-            let badgeToAward = null;
-            
-            if (lowerIdea.includes('todo') || lowerIdea.includes('task')) {
-              badgeToAward = 'Todo Master';
-            } else if (lowerIdea.includes('weather')) {
-              badgeToAward = 'Weather Wizard';
-            }
-
-            if (badgeToAward) {
-              const { data: existingSpecificBadge, error: specificBadgeError } = await supabase
-                .from('badges')
-                .select('id')
-                .eq('user_id', userId)
-                .eq('badge_name', badgeToAward)
-                .maybeSingle();
-
-              if (specificBadgeError && specificBadgeError.code !== 'PGRST116') {
-                console.error('Error checking specific badge:', specificBadgeError);
-              }
-
-              if (!existingSpecificBadge) {
-                await supabase
-                  .from('badges')
-                  .insert([
-                    {
-                      user_id: userId,
-                      badge_name: badgeToAward,
-                      awarded_at: new Date().toISOString()
-                    }
-                  ]);
-                console.log(`Awarded "${badgeToAward}" badge to user`);
-              }
+            if (newBadges.length > 0) {
+              responseData.newBadges = newBadges;
+              console.log(`Awarded ${newBadges.length} new badges:`, newBadges.map(b => b.name));
             }
 
           } catch (badgeError) {
             console.error('Error awarding badges:', badgeError);
+            responseData.badgeError = badgeError.message;
             // Don't fail the main request if badge awarding fails
           }
         }
