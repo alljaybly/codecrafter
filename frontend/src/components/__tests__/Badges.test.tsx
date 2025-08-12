@@ -80,11 +80,16 @@ describe('Badges', () => {
     jest.clearAllMocks();
   });
 
-  test('renders badge library section with header', () => {
+  test('renders badge library section with header and toggle button', () => {
     render(<Badges />);
     
     expect(screen.getByText('Badge Library')).toBeInTheDocument();
     expect(screen.getByText(/discover and collect 20\+ unique achievement badges/i)).toBeInTheDocument();
+    
+    // Check for toggle button
+    const toggleButton = screen.getByRole('button', { name: /show badge collection/i });
+    expect(toggleButton).toBeInTheDocument();
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
   });
 
   test('shows loading state initially', () => {
@@ -105,8 +110,48 @@ describe('Badges', () => {
     });
   });
 
-  test('renders badge library badges', async () => {
+  test('toggle button shows and hides badge collection', async () => {
+    const user = userEvent.setup();
     render(<Badges />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Badge Library')).toBeInTheDocument();
+    });
+    
+    const toggleButton = screen.getByRole('button', { name: /show badge collection/i });
+    
+    // Initially badges should be hidden
+    expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText(/show badges/i)).toBeInTheDocument();
+    
+    // Click to show badges
+    await user.click(toggleButton);
+    
+    await waitFor(() => {
+      expect(toggleButton).toHaveAttribute('aria-expanded', 'true');
+      expect(screen.getByText(/hide badges/i)).toBeInTheDocument();
+    });
+    
+    // Click to hide badges again
+    await user.click(toggleButton);
+    
+    await waitFor(() => {
+      expect(toggleButton).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.getByText(/show badges/i)).toBeInTheDocument();
+    });
+  });
+
+  test('renders badge library badges when expanded', async () => {
+    const user = userEvent.setup();
+    render(<Badges />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Badge Library')).toBeInTheDocument();
+    });
+    
+    // Expand the badge collection
+    const toggleButton = screen.getByRole('button', { name: /show badge collection/i });
+    await user.click(toggleButton);
     
     await waitFor(() => {
       expect(screen.getByText('Idea Pioneer')).toBeInTheDocument();
@@ -116,8 +161,17 @@ describe('Badges', () => {
     });
   });
 
-  test('shows earned badges with different styling', async () => {
+  test('shows earned badges with different styling when expanded', async () => {
+    const user = userEvent.setup();
     render(<Badges />);
+    
+    await waitFor(() => {
+      expect(screen.getByText('Badge Library')).toBeInTheDocument();
+    });
+    
+    // Expand the badge collection
+    const toggleButton = screen.getByRole('button', { name: /show badge collection/i });
+    await user.click(toggleButton);
     
     await waitFor(() => {
       // Idea Pioneer badge should be earned (has gradient background)

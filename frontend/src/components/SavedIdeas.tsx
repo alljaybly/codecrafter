@@ -13,6 +13,7 @@ const SavedIdeas: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [expandedIdea, setExpandedIdea] = useState<number | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date>(new Date());
+  const [isExpanded, setIsExpanded] = useState(false); // Toggle state for collapsible section
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || '/.netlify/functions';
 
@@ -123,22 +124,50 @@ const SavedIdeas: React.FC = () => {
     return (
       <section id="saved-ideas" className="py-16 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Saved Ideas
-            </h2>
+          {/* Toggle Header - Loading State */}
+          <div className="text-center mb-8 animate-fade-in">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="group flex items-center justify-center mx-auto px-6 py-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 hover:border-gray-300"
+              aria-expanded={isExpanded}
+              aria-controls="saved-ideas-content"
+              aria-label={`${isExpanded ? 'Hide' : 'Show'} saved ideas section`}
+            >
+              <h2 className="text-2xl font-bold text-gray-900 mr-3">
+                Saved Ideas (Loading...)
+              </h2>
+              <svg
+                className={`w-6 h-6 text-gray-600 transition-transform duration-200 ${
+                  isExpanded ? 'rotate-180' : ''
+                }`}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
           </div>
           
           {/* Loading skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, index) => (
-              <div key={index} className="bg-white rounded-xl p-6 shadow-sm animate-pulse">
-                <div className="h-4 bg-gray-200 rounded mb-3"></div>
-                <div className="h-4 bg-gray-200 rounded mb-3 w-3/4"></div>
-                <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+          {isExpanded && (
+            <div className="animate-fade-in">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {[...Array(6)].map((_, index) => (
+                  <div key={index} className="bg-white rounded-xl p-6 shadow-sm animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded mb-3"></div>
+                    <div className="h-4 bg-gray-200 rounded mb-3 w-3/4"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+              <div className="text-center mt-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p className="mt-4 text-gray-600" aria-live="polite">Loading ideas...</p>
+              </div>
+            </div>
+          )}
         </div>
       </section>
     );
@@ -147,21 +176,48 @@ const SavedIdeas: React.FC = () => {
   return (
     <section id="saved-ideas" className="py-16 bg-gray-50">
       <div className="max-w-6xl mx-auto px-4">
-        {/* Header */}
-        <div className="text-center mb-12 animate-fade-in">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
-            Saved Ideas
-          </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-4">
-            Real-time view of your generated ideas. Create new ideas above to see them appear here instantly!
-          </p>
-          <p className="text-sm text-gray-500">
-            Last updated: {lastUpdateTime.toLocaleTimeString()} • Updates automatically when you generate new ideas
-          </p>
+        {/* Toggle Header */}
+        <div className="text-center mb-8 animate-fade-in">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="group flex items-center justify-center mx-auto px-6 py-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 hover:border-gray-300"
+            aria-expanded={isExpanded}
+            aria-controls="saved-ideas-content"
+            aria-label={`${isExpanded ? 'Hide' : 'Show'} saved ideas section`}
+          >
+            <h2 className="text-2xl font-bold text-gray-900 mr-3">
+              Saved Ideas ({Array.isArray(ideas) ? ideas.length : 0})
+            </h2>
+            <svg
+              className={`w-6 h-6 text-gray-600 transition-transform duration-200 ${
+                isExpanded ? 'rotate-180' : ''
+              }`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          
+          {isExpanded && (
+            <div className="mt-6 animate-fade-in">
+              <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-2">
+                Real-time view of your generated ideas. Create new ideas above to see them appear here instantly!
+              </p>
+              <p className="text-sm text-gray-500">
+                Last updated: {lastUpdateTime.toLocaleTimeString()} • Updates automatically when you generate new ideas
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Stats */}
-        <div className="bg-white rounded-2xl p-6 mb-8 shadow-sm animate-slide-up">
+        {/* Collapsible Content */}
+        {isExpanded && (
+          <div id="saved-ideas-content" className="animate-fade-in">
+            {/* Stats */}
+            <div className="bg-white rounded-2xl p-6 mb-8 shadow-sm animate-slide-up">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
             <div>
               <div className="text-3xl font-bold text-blue-600 mb-2">
@@ -333,6 +389,8 @@ const SavedIdeas: React.FC = () => {
             )}
           </button>
         </div>
+          </div>
+        )}
       </div>
     </section>
   );

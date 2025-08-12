@@ -41,13 +41,43 @@ describe('SavedIdeas', () => {
     jest.clearAllMocks();
   });
 
-  test('renders loading state initially', () => {
+  test('renders loading state with toggle button initially', () => {
     mockedAxios.get.mockImplementation(() => new Promise(() => {})); // Never resolves
     
     render(<SavedIdeas />);
     
-    expect(screen.getByText('Saved Ideas')).toBeInTheDocument();
-    expect(screen.getByText('Loading badges...')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /show saved ideas section/i })).toBeInTheDocument();
+    expect(screen.getByText(/Saved Ideas \(Loading\.\.\.\)/)).toBeInTheDocument();
+  });
+
+  test('toggle functionality works correctly', async () => {
+    const user = userEvent.setup();
+    mockedAxios.get.mockResolvedValue({ data: mockIdeas });
+    
+    render(<SavedIdeas />);
+    
+    // Wait for loading to complete
+    await waitFor(() => {
+      expect(screen.getByText(/Saved Ideas \(3\)/)).toBeInTheDocument();
+    });
+    
+    const toggleButton = screen.getByRole('button', { name: /show saved ideas section/i });
+    
+    // Initially collapsed - content should not be visible
+    expect(screen.queryByText('Real-time view of your generated ideas')).not.toBeInTheDocument();
+    
+    // Click to expand
+    await user.click(toggleButton);
+    
+    // Content should now be visible
+    expect(screen.getByText('Real-time view of your generated ideas')).toBeInTheDocument();
+    expect(screen.getByText('Total Ideas')).toBeInTheDocument();
+    
+    // Click to collapse
+    await user.click(toggleButton);
+    
+    // Content should be hidden again
+    expect(screen.queryByText('Real-time view of your generated ideas')).not.toBeInTheDocument();
     expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 
