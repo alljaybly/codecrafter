@@ -1,5 +1,7 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
+import DOMPurify from 'dompurify';
+import { generateCode } from '../utils/generatedCode';
 
 interface GeneratedCodeResponse {
   id: number;
@@ -11,6 +13,7 @@ interface GeneratedCodeResponse {
 const InputForm: React.FC = () => {
   const [idea, setIdea] = useState<string>('');
   const [generatedCode, setGeneratedCode] = useState<string>('');
+  const [preview, setPreview] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isTranscribing, setIsTranscribing] = useState<boolean>(false);
@@ -81,13 +84,33 @@ const InputForm: React.FC = () => {
     setSuccess(null);
     
     try {
-      const response = await axios.post<GeneratedCodeResponse>(`${API_BASE_URL}/generate-code`, {
-        idea: idea.trim(),
-        usedVoiceInput: isTranscribing || audioChunksRef.current.length > 0 // Track if voice was used
-      });
+      // First try local code generation
+      const localResult = generateCode(idea.trim());
       
-      setGeneratedCode(response.data.code);
-      setSuccess('Code generated successfully!');
+      if (!localResult.code.includes('Custom Code Generation')) {
+        // Use local generated code
+        setGeneratedCode(localResult.code);
+        const sanitizedCode = DOMPurify.sanitize(localResult.code, {
+          ADD_TAGS: ['script', 'canvas', 'svg', 'animate'],
+          ADD_ATTR: ['id', 'style', 'width', 'height', 'viewBox', 'fill', 'stroke', 'stroke-width', 'onclick', 'onchange', 'onkeypress', 'onmouseover', 'onmouseout']
+        });
+        setPreview(sanitizedCode);
+        setSuccess(`Code generated successfully! Earned ${localResult.points} points!`);
+      } else {
+        // Fallback to API generation
+        const response = await axios.post<GeneratedCodeResponse>(`${API_BASE_URL}/generate-code`, {
+          idea: idea.trim(),
+          usedVoiceInput: isTranscribing || audioChunksRef.current.length > 0
+        });
+        
+        setGeneratedCode(response.data.code);
+        const sanitizedCode = DOMPurify.sanitize(response.data.code, {
+          ADD_TAGS: ['script', 'canvas', 'svg', 'animate'],
+          ADD_ATTR: ['id', 'style', 'width', 'height', 'viewBox', 'fill', 'stroke', 'stroke-width', 'onclick', 'onchange', 'onkeypress', 'onmouseover', 'onmouseout']
+        });
+        setPreview(sanitizedCode);
+        setSuccess('Code generated successfully!');
+      }
       
       // Trigger update events for both badges and ideas
       const badgeUpdateEvent = new CustomEvent('badgeUpdate');
@@ -98,11 +121,11 @@ const InputForm: React.FC = () => {
       // Reset voice input tracking
       audioChunksRef.current = [];
       
-      // Scroll to generated code
+      // Scroll to preview
       setTimeout(() => {
-        const codeElement = document.getElementById('generated-code');
-        if (codeElement) {
-          codeElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const previewElement = document.getElementById('code-preview');
+        if (previewElement) {
+          previewElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
       }, 100);
       
@@ -355,6 +378,55 @@ const InputForm: React.FC = () => {
     }
   };
 
+  const handleShare = () => {
+    if (!generatedCode) {
+      setError('No code to share. Please generate code first.');
+      return;
+    }
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CodeCrafter - ${idea}</title>
+  <style>
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 0; 
+      padding: 20px; 
+      background: #1a202c; 
+      color: #48bb78; 
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas, svg { 
+      border: 2px solid #ed64a6; 
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  ${DOMPurify.sanitize(generatedCode, {
+    ADD_TAGS: ['script', 'canvas', 'svg', 'animate'],
+    ADD_ATTR: ['id', 'style', 'width', 'height', 'viewBox', 'fill', 'stroke', 'stroke-width', 'onclick', 'onchange', 'onkeypress', 'onmouseover', 'onmouseout']
+  })}
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `codecrafter-${idea.toLowerCase().replace(/\s+/g, '-')}.html`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    setSuccess('Code shared successfully! Downloaded as HTML file.');
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 animate-fade-in">
       <div className="text-center mb-8">
@@ -535,21 +607,64 @@ const InputForm: React.FC = () => {
         </div>
       </form>
 
+      {/* Real-Time Preview Window */}
+      {preview && (
+        <div id="code-preview" className="mt-8 animate-slide-up">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">
+              🚀 Live Preview
+            </h2>
+            <p className="text-gray-600 text-sm">
+              Your code running in real-time! Interact with it below.
+            </p>
+          </div>
+          <div className="bg-white rounded-xl p-4 border-2 border-blue-500 shadow-2xl">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-96">
+                <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+                <span className="ml-4 text-gray-600">Generating preview...</span>
+              </div>
+            ) : (
+              <iframe
+                srcDoc={preview}
+                className="w-full h-96 border-0 rounded-lg"
+                sandbox="allow-scripts allow-pointer-lock allow-forms"
+                title="CodeCrafter Live Preview"
+                style={{ backgroundColor: 'white' }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
       {generatedCode && (
         <div id="generated-code" className="mt-8 animate-slide-up">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800">Generated Code</h2>
-            <button
-              onClick={() => copyToClipboard(generatedCode)}
-              className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
-              aria-label="Copy generated code to clipboard"
-              title="Copy to clipboard"
-            >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-              Copy Code
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => copyToClipboard(generatedCode)}
+                className="flex items-center px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-gray-300"
+                aria-label="Copy generated code to clipboard"
+                title="Copy to clipboard"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy Code
+              </button>
+              <button
+                onClick={handleShare}
+                className="flex items-center px-3 py-2 text-sm bg-green-100 hover:bg-green-200 text-green-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-300"
+                aria-label="Share generated code as HTML file"
+                title="Download as HTML file"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                📤 Share
+              </button>
+            </div>
           </div>
           <div className="relative">
             <pre className="bg-gray-900 text-green-400 p-6 rounded-lg overflow-x-auto text-sm border border-gray-700 shadow-inner">
