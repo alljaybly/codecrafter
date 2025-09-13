@@ -192,8 +192,8 @@ const MyApp: React.FC = () => {
 export default MyApp;`
 };
 
-// Badge awarding function
-const awardBadges = async (supabase, userId, idea, usedVoiceInput) => {
+// Enhanced badge awarding function with IoT-specific badges
+const awardBadges = async (supabase, userId, idea, usedVoiceInput, language, platform) => {
   const newBadges = [];
   
   try {
@@ -213,24 +213,53 @@ const awardBadges = async (supabase, userId, idea, usedVoiceInput) => {
     
     const currentIdeaCount = (ideaCount || 0) + 1; // +1 for current idea
     
-    // Define badge criteria to check
+    // Enhanced badge criteria with IoT and language-specific badges
     const badgeCriteria = [
+      // Basic progression badges
       { criteria: 'first_idea', condition: currentIdeaCount === 1 },
-      { criteria: 'first_code', condition: true }, // Always award on code generation
+      { criteria: 'first_code', condition: true },
       { criteria: 'first_voice', condition: usedVoiceInput },
       { criteria: 'ideas_5', condition: currentIdeaCount >= 5 },
       { criteria: 'ideas_10', condition: currentIdeaCount >= 10 },
       { criteria: 'ideas_25', condition: currentIdeaCount >= 25 },
       { criteria: 'ideas_50', condition: currentIdeaCount >= 50 },
-      { criteria: 'voice_10', condition: usedVoiceInput }, // Simplified for demo
+      
+      // Voice input badges
+      { criteria: 'voice_10', condition: usedVoiceInput },
+      
+      // App type badges
       { criteria: 'todo_app', condition: idea.toLowerCase().includes('todo') || idea.toLowerCase().includes('task') },
       { criteria: 'weather_app', condition: idea.toLowerCase().includes('weather') },
       { criteria: 'game_app', condition: idea.toLowerCase().includes('game') },
       { criteria: 'ecommerce_app', condition: idea.toLowerCase().includes('shop') || idea.toLowerCase().includes('store') || idea.toLowerCase().includes('ecommerce') },
       { criteria: 'social_app', condition: idea.toLowerCase().includes('social') || idea.toLowerCase().includes('chat') || idea.toLowerCase().includes('message') },
       { criteria: 'ai_app', condition: idea.toLowerCase().includes('ai') || idea.toLowerCase().includes('artificial intelligence') || idea.toLowerCase().includes('machine learning') },
+      
+      // IoT-specific badges
+      { criteria: 'iot_pioneer', condition: platform && ['arduino', 'raspberry-pi', 'esp32'].includes(platform) },
+      { criteria: 'arduino_master', condition: language === 'arduino' || platform === 'arduino' },
+      { criteria: 'raspberry_pi_expert', condition: platform === 'raspberry-pi' },
+      { criteria: 'esp32_wizard', condition: platform === 'esp32' },
+      { criteria: 'sensor_specialist', condition: idea.toLowerCase().includes('sensor') || idea.toLowerCase().includes('temperature') || idea.toLowerCase().includes('humidity') },
+      { criteria: 'led_controller', condition: idea.toLowerCase().includes('led') || idea.toLowerCase().includes('blink') },
+      
+      // Language-specific badges
+      { criteria: 'rust_developer', condition: language === 'rust' },
+      { criteria: 'python_expert', condition: language === 'python' },
+      { criteria: 'javascript_ninja', condition: language === 'javascript' },
+      
+      // Time-based badges
       { criteria: 'night_activity', condition: new Date().getHours() >= 22 || new Date().getHours() <= 6 },
-      { criteria: 'weekend_activity', condition: [0, 6].includes(new Date().getDay()) }
+      { criteria: 'weekend_activity', condition: [0, 6].includes(new Date().getDay()) },
+      { criteria: 'early_bird', condition: new Date().getHours() >= 5 && new Date().getHours() <= 8 },
+      
+      // Speed badges
+      { criteria: 'fast_generation', condition: true }, // Simplified for demo - would track actual generation time
+      
+      // Streak badges (simplified for demo)
+      { criteria: 'streak_3', condition: currentIdeaCount >= 3 },
+      { criteria: 'streak_7', condition: currentIdeaCount >= 7 },
+      { criteria: 'streak_14', condition: currentIdeaCount >= 14 }
     ];
     
     // Check each criteria and award badges
@@ -268,6 +297,7 @@ const awardBadges = async (supabase, userId, idea, usedVoiceInput) => {
         
         if (!error && newUserBadge) {
           newBadges.push(badge);
+          console.log(`🏆 Awarded badge: ${badge.name} (${badge.points} points)`);
         }
       }
     }
@@ -279,10 +309,172 @@ const awardBadges = async (supabase, userId, idea, usedVoiceInput) => {
   return newBadges;
 };
 
-// Helper function to determine code template based on idea
-const getCodeTemplate = (idea) => {
+// Enhanced helper function with multi-language and IoT support
+const getCodeTemplate = (idea, language = 'html', platform = 'web') => {
   const lowerIdea = idea.toLowerCase();
   
+  // IoT-specific code generation
+  if (language === 'arduino' || platform === 'arduino') {
+    if (lowerIdea.includes('led') || lowerIdea.includes('blink')) {
+      return `// Arduino LED Control - Auto-Generated
+#include <Arduino.h>
+
+const int LED_PIN = 13;
+const int BUTTON_PIN = 2;
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(LED_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
+  Serial.println("✅ Arduino LED Controller Ready!");
+}
+
+void loop() {
+  if (digitalRead(BUTTON_PIN) == LOW) {
+    digitalWrite(LED_PIN, HIGH);
+    Serial.println("💡 LED ON");
+  } else {
+    digitalWrite(LED_PIN, LOW);
+  }
+  delay(100);
+}`;
+    } else if (lowerIdea.includes('sensor') || lowerIdea.includes('temperature')) {
+      return `// Arduino Sensor Reader - Auto-Generated
+#include <DHT.h>
+#define DHT_PIN 2
+#define DHT_TYPE DHT22
+
+DHT dht(DHT_PIN, DHT_TYPE);
+
+void setup() {
+  Serial.begin(9600);
+  dht.begin();
+  Serial.println("🌡️ Sensor Ready!");
+}
+
+void loop() {
+  float temp = dht.readTemperature();
+  float humidity = dht.readHumidity();
+  
+  if (!isnan(temp) && !isnan(humidity)) {
+    Serial.print("Temp: "); Serial.print(temp); Serial.print("°C, ");
+    Serial.print("Humidity: "); Serial.print(humidity); Serial.println("%");
+  }
+  delay(2000);
+}`;
+    }
+  }
+  
+  // Raspberry Pi Python code
+  if (language === 'python' || platform === 'raspberry-pi') {
+    return `#!/usr/bin/env python3
+# Raspberry Pi ${idea} - Auto-Generated
+import RPi.GPIO as GPIO
+import time
+from datetime import datetime
+
+LED_PIN = 18
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(LED_PIN, GPIO.OUT)
+
+print("🚀 Raspberry Pi Controller Started!")
+
+try:
+    while True:
+        GPIO.output(LED_PIN, GPIO.HIGH)
+        print(f"💡 LED ON - {datetime.now()}")
+        time.sleep(1)
+        
+        GPIO.output(LED_PIN, GPIO.LOW)
+        print(f"⚫ LED OFF - {datetime.now()}")
+        time.sleep(1)
+        
+except KeyboardInterrupt:
+    print("🛑 Stopping...")
+finally:
+    GPIO.cleanup()
+    print("✅ Cleanup complete")`;
+  }
+  
+  // Rust code generation
+  if (language === 'rust') {
+    return `// Rust Application - Auto-Generated
+use std::io;
+use std::collections::HashMap;
+
+fn main() {
+    println!("🦀 Rust Application: ${idea}");
+    
+    let mut data = HashMap::new();
+    data.insert("status", "running");
+    data.insert("language", "rust");
+    
+    println!("✅ Application initialized successfully!");
+    println!("📊 Data: {:?}", data);
+    
+    // Add your ${idea} logic here
+    loop {
+        println!("Enter command (or 'quit' to exit):");
+        let mut input = String::new();
+        io::stdin().read_line(&mut input).expect("Failed to read input");
+        
+        match input.trim() {
+            "quit" => {
+                println!("👋 Goodbye!");
+                break;
+            }
+            _ => {
+                println!("🔄 Processing: {}", input.trim());
+            }
+        }
+    }
+}`;
+  }
+  
+  // JavaScript/Node.js backend
+  if (language === 'javascript') {
+    return `// Node.js Application - Auto-Generated
+const express = require('express');
+const cors = require('cors');
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+
+// Routes for ${idea}
+app.get('/', (req, res) => {
+  res.json({
+    message: '🚀 ${idea} API',
+    status: 'running',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/data', (req, res) => {
+  res.json({
+    data: 'Your ${idea} data here',
+    generated: true,
+    language: 'javascript'
+  });
+});
+
+app.post('/api/process', (req, res) => {
+  const { input } = req.body;
+  res.json({
+    processed: input,
+    result: \`Processed: \${input}\`,
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.listen(PORT, () => {
+  console.log(\`✅ ${idea} server running on port \${PORT}\`);
+});`;
+  }
+  
+  // Default web templates
   if (lowerIdea.includes('todo') || lowerIdea.includes('task')) {
     return codeTemplates.todo;
   } else if (lowerIdea.includes('weather')) {
@@ -318,7 +510,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { idea, usedVoiceInput } = JSON.parse(event.body || '{}');
+    const { idea, usedVoiceInput, language, platform } = JSON.parse(event.body || '{}');
     
     if (!idea || !idea.trim()) {
       return {
@@ -328,8 +520,10 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Generate code based on the idea
-    const generatedCode = getCodeTemplate(idea);
+    console.log(`🚀 Generating code for: "${idea}" (Language: ${language || 'default'}, Platform: ${platform || 'web'})`);
+
+    // Enhanced code generation with language/platform support
+    const generatedCode = getCodeTemplate(idea, language, platform);
     
     // Try to store in Supabase if available
     let responseData = {
@@ -373,14 +567,15 @@ exports.handler = async (event, context) => {
           responseData.id = data.id;
           responseData.supabaseStatus = 'success';
           
-          // Award badges using new badge library system
+          // Award badges using enhanced badge library system
           try {
             const userId = 'demo-user'; // In a real app, this would come from authentication
-            const newBadges = await awardBadges(supabase, userId, idea.trim(), usedVoiceInput);
+            const newBadges = await awardBadges(supabase, userId, idea.trim(), usedVoiceInput, language, platform);
             
             if (newBadges.length > 0) {
               responseData.newBadges = newBadges;
-              console.log(`Awarded ${newBadges.length} new badges:`, newBadges.map(b => b.name));
+              responseData.totalPointsEarned = newBadges.reduce((sum, badge) => sum + badge.points, 0);
+              console.log(`🎉 Awarded ${newBadges.length} new badges (${responseData.totalPointsEarned} points):`, newBadges.map(b => `${b.name} (${b.points}pts)`));
             }
 
           } catch (badgeError) {

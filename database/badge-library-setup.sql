@@ -77,6 +77,22 @@ INSERT INTO badges (name, description, color, icon, criteria, category, rarity, 
 ('Night Owl', 'Generated ideas between 10PM and 6AM', 'indigo-400', 'HiMoon', 'night_activity', 'technical', 'common', 20),
 ('Weekend Warrior', 'Generated ideas on weekends', 'teal-500', 'HiCalendar', 'weekend_activity', 'technical', 'common', 20),
 
+-- IoT Specialist Badges (Rare to Epic)
+('IoT Pioneer', 'Created your first IoT device code', 'blue-600', 'HiChip', 'iot_pioneer', 'iot', 'rare', 40),
+('Arduino Master', 'Generated Arduino code like a pro', 'green-600', 'HiCog', 'arduino_master', 'iot', 'rare', 35),
+('Raspberry Pi Expert', 'Mastered Raspberry Pi development', 'red-500', 'HiDesktopComputer', 'raspberry_pi_expert', 'iot', 'rare', 35),
+('ESP32 Wizard', 'Created WiFi-enabled IoT solutions', 'purple-600', 'HiWifi', 'esp32_wizard', 'iot', 'epic', 50),
+('Sensor Specialist', 'Built sensor monitoring systems', 'yellow-500', 'HiEye', 'sensor_specialist', 'iot', 'rare', 30),
+('LED Controller', 'Mastered LED control and automation', 'orange-500', 'HiLightBulb', 'led_controller', 'iot', 'common', 20),
+
+-- Language Mastery Badges (Rare to Epic)
+('Rust Developer', 'Generated Rust code with precision', 'orange-600', 'HiCode', 'rust_developer', 'language', 'epic', 60),
+('Python Expert', 'Mastered Python development', 'blue-500', 'HiTerminal', 'python_expert', 'language', 'rare', 30),
+('JavaScript Ninja', 'Created powerful JavaScript applications', 'yellow-400', 'HiLightningBolt', 'javascript_ninja', 'language', 'rare', 30),
+
+-- Time-based Achievement Badges
+('Early Bird', 'Generated code in the early morning', 'yellow-300', 'HiSun', 'early_bird', 'time', 'common', 15),
+
 -- Achievement Badges (Epic to Legendary)
 ('Perfectionist', 'Generated 10 ideas without errors', 'gold', 'HiShield', 'perfect_streak', 'achievement', 'epic', 75),
 ('Community Builder', 'Shared ideas that inspired others', 'rose-500', 'HiUsers', 'community_impact', 'achievement', 'epic', 80),
